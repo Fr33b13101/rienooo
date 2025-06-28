@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
-import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../hooks/useAuth';
 
 export const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,26 +29,10 @@ export const LoginPage: React.FC = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/login", {
-        email: formData.email,
-        password: formData.password
-      }, {
-        withCredentials: true
-      });
-      
-      if (response.data) {
-        console.log(response.data);
-        addToast('success', 'Login successful!');
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password');
-        console.log(response);
-      }
+      await login(formData.email, formData.password);
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMessage = err.response?.data?.error || 'Invalid email or password';
-      setError(errorMessage);
-      addToast('error', errorMessage);
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

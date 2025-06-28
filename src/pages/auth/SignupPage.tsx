@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
-import { useToast } from '../../hooks/useToast';
-
+import { useAuth } from '../../hooks/useAuth';
 
 export const SignupPage: React.FC = () => {
-  axios.defaults.withCredentials = true;
-  const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -55,29 +51,10 @@ export const SignupPage: React.FC = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/signup", {
-        firstname: formData.firstName,
-        lastname: formData.lastName,
-        email: formData.email,
-        password: formData.password
-      }, {
-        withCredentials: true
-      });
-
-      if (response.data || response.status === 200) {
-        console.log(response, "user successfully signed up");
-        addToast('success', 'Account created successfully!');
-        navigate('/dashboard');
-        return;
-      } else {
-        console.log(error, "There was an error signing up");
-        setError('Failed to create account. Please try again.');
-      }
+      await signup(formData.email, formData.password);
     } catch (err: any) {
-      console.log(err, "failed to create account. Please try again");
-      const errorMessage = err.response?.data?.error || 'Failed to create account. Please try again.';
-      setError(errorMessage);
-      addToast('error', errorMessage);
+      console.error('Signup error:', err);
+      setError(err.message || 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
     }
