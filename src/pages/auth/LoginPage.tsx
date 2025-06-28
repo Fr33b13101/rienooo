@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
+import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 
 export const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { login } = useAuth();
   const { addToast } = useToast();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: 'demo@rieno.com',
+    password: 'demo123',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,24 +31,10 @@ export const LoginPage: React.FC = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/auth/login", {
-        email: formData.email,
-        password: formData.password
-      }, {
-        withCredentials: true
-      });
-      
-      if (response.data) {
-        console.log(response.data);
-        addToast('success', 'Login successful!');
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password');
-        console.log(response);
-      }
+      await login(formData.email, formData.password);
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMessage = err.response?.data?.error || 'Invalid email or password';
+      const errorMessage = err.message || 'Login failed. Please try again';
       setError(errorMessage);
       addToast('error', errorMessage);
     } finally {
@@ -63,6 +49,27 @@ export const LoginPage: React.FC = () => {
     }));
     // Clear error when user starts typing
     if (error) setError('');
+  };
+
+  const handleDemoLogin = async () => {
+    setFormData({
+      email: 'demo@rieno.com',
+      password: 'demo123'
+    });
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      await login('demo@rieno.com', 'demo123');
+    } catch (err: any) {
+      console.error('Demo login error:', err);
+      const errorMessage = err.message || 'Demo login failed. Please try again';
+      setError(errorMessage);
+      addToast('error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -95,6 +102,28 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <Card className="p-8 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700">
+          {/* Demo Mode Notice */}
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">Demo Mode</h3>
+                <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                  Use any email/password or click the demo button
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={handleDemoLogin}
+                variant="outline"
+                size="sm"
+                isLoading={isLoading}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/30"
+              >
+                Quick Demo
+              </Button>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <motion.div
@@ -112,7 +141,7 @@ export const LoginPage: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="john@example.com"
+              placeholder="demo@rieno.com"
               required
             />
 
@@ -122,7 +151,7 @@ export const LoginPage: React.FC = () => {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="Enter your password"
+              placeholder="demo123"
               showPasswordToggle
               required
             />
