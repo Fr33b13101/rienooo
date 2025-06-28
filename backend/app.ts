@@ -17,7 +17,7 @@ const PORT =  5000
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', "http://localhost:5174", "http://localhost:5175"], // Adjust this to your client URL
+  origin: ['http://localhost:5173', "http://localhost:5174", "http://localhost:5175",' https://inspiring-platypus-8b7479.netlify.app/'], // Adjust this to your client URL
   credentials: true, // Allow cookies to be sent with requests
 }));
 app.use(cookieParser());
