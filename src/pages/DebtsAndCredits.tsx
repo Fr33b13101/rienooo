@@ -4,7 +4,6 @@ import { useToast } from '../hooks/useToast';
 import { DebtCredit } from '../types';
 import { Plus, Edit, Trash, Search, Check, Clock, Circle, Filter } from 'lucide-react';
 import { format } from 'date-fns';
-import { supabase } from '../lib/supabase';
 import FullscreenModal from '../components/ui/FullscreenModal';
 
 interface DebtCreditForm {
@@ -17,6 +16,46 @@ interface DebtCreditForm {
   status: 'paid' | 'unpaid';
   type: 'receivable' | 'payable';
 }
+
+// Demo data
+const initialDemoDebtsCredits: DebtCredit[] = [
+  {
+    id: 'dc-1',
+    name: 'ABC Corp',
+    amount: 2500,
+    reason: 'Website development project',
+    date: '2024-01-15',
+    dueDate: '2024-02-15',
+    status: 'unpaid',
+    type: 'receivable',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'dc-2',
+    name: 'John Smith',
+    amount: 800,
+    reason: 'Logo design work',
+    date: '2024-01-20',
+    dueDate: '2024-02-20',
+    status: 'paid',
+    type: 'receivable',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'dc-3',
+    name: 'Software Vendor',
+    amount: 299,
+    reason: 'Annual software license',
+    date: '2024-01-10',
+    dueDate: '2024-02-10',
+    status: 'unpaid',
+    type: 'payable',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+];
 
 const DebtsAndCredits = () => {
   const { user } = useAuth();
@@ -42,28 +81,30 @@ const DebtsAndCredits = () => {
   });
   
   useEffect(() => {
-    const fetchDebtsCredits = async () => {
-      if (!user) return;
-      
+    const loadDemoDebtsCredits = () => {
       try {
-        const { data, error } = await supabase
-          .from('debts_credits')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('due_date');
-
-        if (error) throw error;
-        
-        setDebtsCredits(data || []);
+        // Load from localStorage or use initial demo data
+        const savedData = localStorage.getItem('demo_debts_credits');
+        if (savedData) {
+          setDebtsCredits(JSON.parse(savedData));
+        } else {
+          // Save initial demo data to localStorage
+          localStorage.setItem('demo_debts_credits', JSON.stringify(initialDemoDebtsCredits));
+          setDebtsCredits(initialDemoDebtsCredits);
+        }
       } catch (error) {
-        console.error('Error fetching debts and credits:', error);
+        console.error('Error loading demo debts and credits:', error);
+        setDebtsCredits(initialDemoDebtsCredits);
         addToast('error', 'Failed to load debts and credits');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDebtsCredits();
+    if (user) {
+      // Simulate loading time
+      setTimeout(loadDemoDebtsCredits, 500);
+    }
   }, [user, addToast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -109,15 +150,15 @@ const DebtsAndCredits = () => {
     try {
       setDeleting(id);
       
-      const { error } = await supabase
-        .from('debts_credits')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      setDebtsCredits((prev) => prev.filter(item => item.id !== id));
+      const updatedData = debtsCredits.filter(item => item.id !== id);
+      setDebtsCredits(updatedData);
+      
+      // Save to localStorage
+      localStorage.setItem('demo_debts_credits', JSON.stringify(updatedData));
+      
       addToast('success', 'Entry deleted successfully');
     } catch (error) {
       console.error('Error deleting entry:', error);
@@ -141,53 +182,51 @@ const DebtsAndCredits = () => {
     }
     
     try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       if (editingId) {
         // Update existing entry
-        const { data, error } = await supabase
-          .from('debts_credits')
-          .update({
-            name: formData.name,
-            amount: formData.amount,
-            reason: formData.reason,
-            date: formData.date,
-            due_date: formData.dueDate,
-            status: formData.status,
-            type: formData.type,
-          })
-          .eq('id', editingId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const updatedEntry: DebtCredit = {
+          id: editingId,
+          name: formData.name,
+          amount: formData.amount,
+          reason: formData.reason,
+          date: formData.date,
+          dueDate: formData.dueDate,
+          status: formData.status,
+          type: formData.type,
+          userId: user.id,
+          createdAt: debtsCredits.find(item => item.id === editingId)?.createdAt || new Date().toISOString(),
+        };
         
-        setDebtsCredits((prev) =>
-          prev.map((item) =>
-            item.id === editingId ? { ...data, dueDate: data.due_date } : item
-          )
+        const updatedData = debtsCredits.map((item) =>
+          item.id === editingId ? updatedEntry : item
         );
+        
+        setDebtsCredits(updatedData);
+        localStorage.setItem('demo_debts_credits', JSON.stringify(updatedData));
         
         addToast('success', 'Entry updated successfully');
       } else {
         // Add new entry
-        const { data, error } = await supabase
-          .from('debts_credits')
-          .insert([{
-            name: formData.name,
-            amount: formData.amount,
-            reason: formData.reason,
-            date: formData.date,
-            due_date: formData.dueDate,
-            status: formData.status,
-            type: formData.type,
-            user_id: user.id
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
+        const newEntry: DebtCredit = {
+          id: 'dc-' + Date.now(),
+          name: formData.name,
+          amount: formData.amount,
+          reason: formData.reason,
+          date: formData.date,
+          dueDate: formData.dueDate,
+          status: formData.status,
+          type: formData.type,
+          userId: user.id,
+          createdAt: new Date().toISOString(),
+        };
         
-        setDebtsCredits((prev) => [...prev, { ...data, dueDate: data.due_date }]);
+        const updatedData = [...debtsCredits, newEntry];
+        setDebtsCredits(updatedData);
+        localStorage.setItem('demo_debts_credits', JSON.stringify(updatedData));
+        
         addToast('success', 'Entry added successfully');
       }
       
@@ -205,19 +244,15 @@ const DebtsAndCredits = () => {
     try {
       const newStatus = currentStatus === 'paid' ? 'unpaid' : 'paid';
       
-      const { error } = await supabase
-        .from('debts_credits')
-        .update({ status: newStatus })
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      setDebtsCredits((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: newStatus } : item
-        )
+      const updatedData = debtsCredits.map((item) =>
+        item.id === id ? { ...item, status: newStatus } : item
       );
+      
+      setDebtsCredits(updatedData);
+      localStorage.setItem('demo_debts_credits', JSON.stringify(updatedData));
       
       addToast('success', `Marked as ${newStatus}`);
     } catch (error) {
@@ -252,8 +287,8 @@ const DebtsAndCredits = () => {
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-secondary-900">Debts & Credits</h2>
-          <p className="text-secondary-600 mt-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Debts & Credits</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Track who owes you money and what you owe to others.
           </p>
         </div>
@@ -261,7 +296,7 @@ const DebtsAndCredits = () => {
       
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="card bg-gradient-to-br from-primary-800 to-primary-700 text-white">
+        <div className="card bg-gradient-to-br from-primary-600 to-primary-700 text-white">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-white font-medium text-lg">Total Receivable</h3>
@@ -281,15 +316,15 @@ const DebtsAndCredits = () => {
         <div className="card">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-secondary-900 font-medium text-lg">Total Payable</h3>
-              <p className="text-3xl font-bold text-secondary-900 mt-2">
+              <h3 className="text-gray-900 dark:text-white font-medium text-lg">Total Payable</h3>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
                 ${totalPayable.toLocaleString()}
               </p>
-              <p className="text-secondary-500 mt-2">
+              <p className="text-gray-500 dark:text-gray-400 mt-2">
                 Money you owe to others
               </p>
             </div>
-            <div className="p-3 bg-secondary-100 rounded-full text-secondary-800">
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-800 dark:text-gray-200">
               <TrendingDown size={32} />
             </div>
           </div>
@@ -297,7 +332,7 @@ const DebtsAndCredits = () => {
       </div>
       
       {/* Tabs */}
-      <div className="flex mb-6 border-b border-secondary-200">
+      <div className="flex mb-6 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => {
             setCurrentType('receivable');
@@ -306,8 +341,8 @@ const DebtsAndCredits = () => {
           }}
           className={`py-3 px-5 font-medium text-sm ${
             currentType === 'receivable'
-              ? 'text-primary-800 border-b-2 border-primary-800'
-              : 'text-secondary-600 hover:text-secondary-900'
+              ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
           Who Owes You
@@ -320,8 +355,8 @@ const DebtsAndCredits = () => {
           }}
           className={`py-3 px-5 font-medium text-sm ${
             currentType === 'payable'
-              ? 'text-primary-800 border-b-2 border-primary-800'
-              : 'text-secondary-600 hover:text-secondary-900'
+              ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
           What You Owe
@@ -330,17 +365,17 @@ const DebtsAndCredits = () => {
       
       {loading ? (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-2 border-primary-800 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-secondary-600">Loading entries...</p>
+          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading entries...</p>
         </div>
       ) : !hasData ? (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Plus size={48} className="text-primary-800" />
+            <div className="w-24 h-24 bg-primary-50 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Plus size={48} className="text-primary-600 dark:text-primary-400" />
             </div>
-            <h3 className="text-xl font-semibold text-secondary-900 mb-4">No entries yet</h3>
-            <p className="text-secondary-600 mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">No entries yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
               Start tracking your debts and credits by adding your first entry.
             </p>
             <button
@@ -374,7 +409,7 @@ const DebtsAndCredits = () => {
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search size={18} className="text-secondary-400" />
+                  <Search size={18} className="text-gray-400" />
                 </div>
                 <input
                   type="text"
@@ -387,7 +422,7 @@ const DebtsAndCredits = () => {
               
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Filter size={18} className="text-secondary-400" />
+                  <Filter size={18} className="text-gray-400" />
                 </div>
                 <select
                   value={statusFilter}
@@ -405,63 +440,63 @@ const DebtsAndCredits = () => {
           {/* Items Table */}
           <div className="card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-200">
-                <thead className="bg-secondary-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Reason
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Due Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-4 text-center text-secondary-500">
+                      <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                         No entries found.
                       </td>
                     </tr>
                   ) : (
                     filteredItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-secondary-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                           {item.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           ${item.amount.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {item.reason}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {format(new Date(item.date), 'MMM dd, yyyy')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {format(new Date(item.dueDate), 'MMM dd, yyyy')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                               item.status === 'paid'
-                                ? 'bg-success-100 text-success-800'
-                                : 'bg-warning-100 text-warning-800'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                             }`}
                           >
                             {item.status === 'paid' ? (
@@ -478,8 +513,8 @@ const DebtsAndCredits = () => {
                               onClick={() => handleStatusToggle(item.id, item.status)}
                               className={`p-1 rounded-full ${
                                 item.status === 'paid' 
-                                  ? 'bg-secondary-100 text-secondary-600 hover:bg-secondary-200' 
-                                  : 'bg-success-100 text-success-600 hover:bg-success-200'
+                                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600' 
+                                  : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
                               }`}
                               title={item.status === 'paid' ? 'Mark as unpaid' : 'Mark as paid'}
                             >
@@ -491,14 +526,14 @@ const DebtsAndCredits = () => {
                             </button>
                             <button
                               onClick={() => handleEdit(item)}
-                              className="p-1 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-full"
+                              className="p-1 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-full"
                               title="Edit entry"
                             >
                               <Edit size={18} />
                             </button>
                             <button
                               onClick={() => handleDelete(item.id)}
-                              className="p-1 text-error-600 hover:text-error-800 hover:bg-error-50 rounded-full"
+                              className="p-1 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full"
                               title="Delete entry"
                               disabled={deleting === item.id}
                             >
@@ -534,7 +569,7 @@ const DebtsAndCredits = () => {
               <div>
                 <label htmlFor="name" className="label">
                   Name/Company
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -551,11 +586,11 @@ const DebtsAndCredits = () => {
               <div>
                 <label htmlFor="amount" className="label">
                   Amount
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-secondary-500">$</span>
+                    <span className="text-gray-500 dark:text-gray-400">$</span>
                   </div>
                   <input
                     type="number"
@@ -575,7 +610,7 @@ const DebtsAndCredits = () => {
               <div className="md:col-span-2">
                 <label htmlFor="reason" className="label">
                   Reason/Description
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -592,7 +627,7 @@ const DebtsAndCredits = () => {
               <div>
                 <label htmlFor="date" className="label">
                   Date
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="date"
@@ -608,7 +643,7 @@ const DebtsAndCredits = () => {
               <div>
                 <label htmlFor="dueDate" className="label">
                   Due Date
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="date"
@@ -644,7 +679,7 @@ const DebtsAndCredits = () => {
               />
             </div>
             
-            <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={() => {

@@ -49,15 +49,36 @@ const DashboardMain = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Demo data - no backend calls needed
+  // Load demo entries from localStorage
   useEffect(() => {
-    // Simulate loading demo entries
-    const demoEntries = [
-      { id: 1, product: 'Website Design', revenue: 2500, cost: 500, profit: 2000 },
-      { id: 2, product: 'Logo Design', revenue: 800, cost: 100, profit: 700 },
-      { id: 3, product: 'Consulting', revenue: 1200, cost: 0, profit: 1200 },
-    ];
-    setEntries(demoEntries as any);
+    const loadDemoEntries = () => {
+      try {
+        const savedEntries = localStorage.getItem('demo_entries');
+        if (savedEntries) {
+          const parsedEntries = JSON.parse(savedEntries);
+          setEntries(parsedEntries.slice(0, 3)); // Show only first 3
+        } else {
+          // Default demo entries if none exist
+          const defaultEntries = [
+            { id: 1, productOrService: 'Website Design', revenue: 2500, cost: 500, profit: 2000 },
+            { id: 2, productOrService: 'Logo Design', revenue: 800, cost: 100, profit: 700 },
+            { id: 3, productOrService: 'Consulting', revenue: 1200, cost: 0, profit: 1200 },
+          ];
+          setEntries(defaultEntries as any);
+        }
+      } catch (error) {
+        console.error('Error loading demo entries:', error);
+        // Fallback to default entries
+        const defaultEntries = [
+          { id: 1, productOrService: 'Website Design', revenue: 2500, cost: 500, profit: 2000 },
+          { id: 2, productOrService: 'Logo Design', revenue: 800, cost: 100, profit: 700 },
+          { id: 3, productOrService: 'Consulting', revenue: 1200, cost: 0, profit: 1200 },
+        ];
+        setEntries(defaultEntries as any);
+      }
+    };
+
+    loadDemoEntries();
   }, []);
 
   if (loading) {
@@ -341,16 +362,23 @@ const DashboardMain = () => {
         {entries.length > 0 ? (
           <div className="space-y-3">
             {entries.slice(0, 3).map((entry: any) => (
-              <div key={entry.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <motion.div 
+                key={entry.id} 
+                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                whileHover={{ scale: 1.02, backgroundColor: '#F3F4F6' }}
+                transition={{ duration: 0.2 }}
+              >
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">{entry.product}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Revenue: ${entry.revenue} • Cost: ${entry.cost}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{entry.productOrService}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Revenue: ${entry.revenue} • Cost: ${entry.cost}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-green-600 dark:text-green-400">${entry.profit}</p>
+                  <p className="font-semibold text-green-600 dark:text-green-400">${entry.profit || (entry.revenue - entry.cost)}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Profit</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : (

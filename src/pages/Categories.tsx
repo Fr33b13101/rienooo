@@ -3,7 +3,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Category } from '../types';
 import { Plus, Edit, Trash, Tag, Circle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import FullscreenModal from '../components/ui/FullscreenModal';
 
 // Available colors
@@ -18,6 +17,50 @@ const colorOptions = [
   { name: 'Green', value: '#10B981' },
   { name: 'Teal', value: '#14B8A6' },
   { name: 'Indigo', value: '#6366F1' },
+];
+
+// Demo categories data
+const initialDemoCategories: Category[] = [
+  {
+    id: 'cat-1',
+    name: 'Consulting',
+    type: 'income',
+    color: '#10B981',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'cat-2',
+    name: 'Design Work',
+    type: 'income',
+    color: '#3B82F6',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'cat-3',
+    name: 'Development',
+    type: 'income',
+    color: '#8B5CF6',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'cat-4',
+    name: 'Office Supplies',
+    type: 'expense',
+    color: '#F59E0B',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'cat-5',
+    name: 'Software',
+    type: 'expense',
+    color: '#EF4444',
+    userId: 'demo-user',
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 interface CategoryForm {
@@ -44,28 +87,30 @@ const Categories = () => {
   });
   
   useEffect(() => {
-    const fetchCategories = async () => {
-      if (!user) return;
-      
+    const loadDemoCategories = () => {
       try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('name');
-
-        if (error) throw error;
-        
-        setCategories(data || []);
+        // Load from localStorage or use initial demo data
+        const savedCategories = localStorage.getItem('demo_categories');
+        if (savedCategories) {
+          setCategories(JSON.parse(savedCategories));
+        } else {
+          // Save initial demo categories to localStorage
+          localStorage.setItem('demo_categories', JSON.stringify(initialDemoCategories));
+          setCategories(initialDemoCategories);
+        }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error loading demo categories:', error);
+        setCategories(initialDemoCategories);
         addToast('error', 'Failed to load categories');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategories();
+    if (user) {
+      // Simulate loading time
+      setTimeout(loadDemoCategories, 500);
+    }
   }, [user, addToast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -102,15 +147,15 @@ const Categories = () => {
     try {
       setDeleting(id);
       
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      setCategories((prev) => prev.filter(category => category.id !== id));
+      const updatedCategories = categories.filter(category => category.id !== id);
+      setCategories(updatedCategories);
+      
+      // Save to localStorage
+      localStorage.setItem('demo_categories', JSON.stringify(updatedCategories));
+      
       addToast('success', 'Category deleted successfully');
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -134,45 +179,43 @@ const Categories = () => {
     }
     
     try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       if (editingId) {
         // Update existing category
-        const { data, error } = await supabase
-          .from('categories')
-          .update({
-            name: formData.name,
-            type: formData.type,
-            color: formData.color,
-          })
-          .eq('id', editingId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
+        const updatedCategory: Category = {
+          id: editingId,
+          name: formData.name,
+          type: formData.type,
+          color: formData.color,
+          userId: user.id,
+          createdAt: categories.find(c => c.id === editingId)?.createdAt || new Date().toISOString(),
+        };
         
-        setCategories((prev) =>
-          prev.map((category) =>
-            category.id === editingId ? data : category
-          )
+        const updatedCategories = categories.map((category) =>
+          category.id === editingId ? updatedCategory : category
         );
+        
+        setCategories(updatedCategories);
+        localStorage.setItem('demo_categories', JSON.stringify(updatedCategories));
         
         addToast('success', 'Category updated successfully');
       } else {
         // Add new category
-        const { data, error } = await supabase
-          .from('categories')
-          .insert([{
-            name: formData.name,
-            type: formData.type,
-            color: formData.color,
-            user_id: user.id
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
+        const newCategory: Category = {
+          id: 'cat-' + Date.now(),
+          name: formData.name,
+          type: formData.type,
+          color: formData.color,
+          userId: user.id,
+          createdAt: new Date().toISOString(),
+        };
         
-        setCategories((prev) => [...prev, data]);
+        const updatedCategories = [...categories, newCategory];
+        setCategories(updatedCategories);
+        localStorage.setItem('demo_categories', JSON.stringify(updatedCategories));
+        
         addToast('success', 'Category added successfully');
       }
       
@@ -190,8 +233,8 @@ const Categories = () => {
     <div className="max-w-4xl mx-auto animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-secondary-900">Manage Categories</h2>
-          <p className="text-secondary-600 mt-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Categories</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Create and manage categories for organizing your income and expenses.
           </p>
         </div>
@@ -209,17 +252,17 @@ const Categories = () => {
       
       {loading ? (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-2 border-primary-800 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-secondary-600">Loading categories...</p>
+          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading categories...</p>
         </div>
       ) : !hasCategories ? (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Tag size={48} className="text-primary-800" />
+            <div className="w-24 h-24 bg-primary-50 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Tag size={48} className="text-primary-600 dark:text-primary-400" />
             </div>
-            <h3 className="text-xl font-semibold text-secondary-900 mb-4">No categories yet</h3>
-            <p className="text-secondary-600 mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">No categories yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
               Create your first category to start organizing your financial entries.
             </p>
             <button
@@ -239,10 +282,10 @@ const Categories = () => {
           {/* Income Categories */}
           <div className="card">
             <div className="flex items-center mb-4">
-              <div className="bg-primary-50 p-2 rounded-full mr-3">
-                <TrendingUp size={20} className="text-primary-800" />
+              <div className="bg-primary-50 dark:bg-primary-900/30 p-2 rounded-full mr-3">
+                <TrendingUp size={20} className="text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-lg font-semibold">Income Categories</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Income Categories</h3>
             </div>
             
             <ul className="space-y-2">
@@ -251,26 +294,26 @@ const Categories = () => {
                 .map((category) => (
                   <li
                     key={category.id}
-                    className="flex items-center justify-between p-3 bg-white border border-secondary-200 rounded-lg hover:bg-secondary-50 transition-colors"
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   >
                     <div className="flex items-center">
                       <span
                         className="w-4 h-4 rounded-full mr-3"
                         style={{ backgroundColor: category.color }}
                       ></span>
-                      <span className="font-medium text-secondary-800">{category.name}</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{category.name}</span>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="p-1 text-secondary-400 hover:text-primary-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         title="Edit category"
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
-                        className="p-1 text-secondary-400 hover:text-error-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         title="Delete category"
                         disabled={deleting === category.id}
                       >
@@ -285,7 +328,7 @@ const Categories = () => {
                 ))}
               
               {categories.filter((category) => category.type === 'income').length === 0 && (
-                <li className="text-center py-4 text-secondary-500">
+                <li className="text-center py-4 text-gray-500 dark:text-gray-400">
                   No income categories found.
                 </li>
               )}
@@ -295,10 +338,10 @@ const Categories = () => {
           {/* Expense Categories */}
           <div className="card">
             <div className="flex items-center mb-4">
-              <div className="bg-error-50 p-2 rounded-full mr-3">
-                <TrendingDown size={20} className="text-error-600" />
+              <div className="bg-red-50 dark:bg-red-900/30 p-2 rounded-full mr-3">
+                <TrendingDown size={20} className="text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-lg font-semibold">Expense Categories</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expense Categories</h3>
             </div>
             
             <ul className="space-y-2">
@@ -307,26 +350,26 @@ const Categories = () => {
                 .map((category) => (
                   <li
                     key={category.id}
-                    className="flex items-center justify-between p-3 bg-white border border-secondary-200 rounded-lg hover:bg-secondary-50 transition-colors"
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   >
                     <div className="flex items-center">
                       <span
                         className="w-4 h-4 rounded-full mr-3"
                         style={{ backgroundColor: category.color }}
                       ></span>
-                      <span className="font-medium text-secondary-800">{category.name}</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{category.name}</span>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="p-1 text-secondary-400 hover:text-primary-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         title="Edit category"
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
-                        className="p-1 text-secondary-400 hover:text-error-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         title="Delete category"
                         disabled={deleting === category.id}
                       >
@@ -341,7 +384,7 @@ const Categories = () => {
                 ))}
               
               {categories.filter((category) => category.type === 'expense').length === 0 && (
-                <li className="text-center py-4 text-secondary-500">
+                <li className="text-center py-4 text-gray-500 dark:text-gray-400">
                   No expense categories found.
                 </li>
               )}
@@ -364,7 +407,7 @@ const Categories = () => {
               <div>
                 <label htmlFor="name" className="label">
                   Category Name
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -381,7 +424,7 @@ const Categories = () => {
               <div>
                 <label htmlFor="type" className="label">
                   Type
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <select
                   id="type"
@@ -417,7 +460,7 @@ const Categories = () => {
             </div>
             
             <div className="flex mt-2 items-center space-x-2">
-              <span className="text-sm text-secondary-600">Preview:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Preview:</span>
               <span
                 className="inline-block w-4 h-4 rounded-full"
                 style={{ backgroundColor: formData.color }}
@@ -430,7 +473,7 @@ const Categories = () => {
               </span>
             </div>
             
-            <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={() => {
