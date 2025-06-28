@@ -44,6 +44,7 @@ const DashboardMain = () => {
   };
 
   useEffect(() => {
+    // Simulate loading time
     const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
@@ -251,9 +252,10 @@ const DashboardMain = () => {
           className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col w-full min-h-[400px]"
           whileHover={{ 
             y: -4, 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            transition: { duration: 0.2 }
+            scale: 1.02,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
           }}
+          transition={{ duration: 0.2 }}
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white">
             Revenue & Profit Over Time
@@ -317,6 +319,52 @@ const DashboardMain = () => {
         >
           <CircularProgressChart />
         </motion.div>
+      </motion.div>
+
+      {/* Recent Entries Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Entries</h3>
+          <button
+            onClick={() => navigate('/dashboard/add-entry')}
+            className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium transition-colors"
+          >
+            View All
+          </button>
+        </div>
+        
+        {entries.length > 0 ? (
+          <div className="space-y-3">
+            {entries.slice(0, 3).map((entry: any) => (
+              <div key={entry.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{entry.product}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Revenue: ${entry.revenue} • Cost: ${entry.cost}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-green-600 dark:text-green-400">${entry.profit}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Profit</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No entries yet</p>
+            <button
+              onClick={() => navigate('/dashboard/add-entry')}
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              <Plus size={18} />
+              Add Your First Entry
+            </button>
+          </div>
+        )}
       </motion.div>
 
       {/* Floating Action Button */}
