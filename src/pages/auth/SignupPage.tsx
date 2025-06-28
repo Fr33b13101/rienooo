@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { useToast } from '../../hooks/useToast';
 
+
 export const SignupPage: React.FC = () => {
   axios.defaults.withCredentials = true;
   const navigate = useNavigate();
