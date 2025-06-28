@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Category } from '../types';
 import { Save, Calendar, DollarSign, Tag, FileText, Plus } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import FullscreenModal from '../components/ui/FullscreenModal';
 import { motion } from 'framer-motion';
 
@@ -14,50 +15,6 @@ interface EntryForm {
   categoryId: string;
   notes: string;
 }
-
-// Demo categories data
-const demoCategories: Category[] = [
-  {
-    id: 'cat-1',
-    name: 'Consulting',
-    type: 'income',
-    color: '#10B981',
-    userId: 'demo-user',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'cat-2',
-    name: 'Design Work',
-    type: 'income',
-    color: '#3B82F6',
-    userId: 'demo-user',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'cat-3',
-    name: 'Development',
-    type: 'income',
-    color: '#8B5CF6',
-    userId: 'demo-user',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'cat-4',
-    name: 'Office Supplies',
-    type: 'expense',
-    color: '#F59E0B',
-    userId: 'demo-user',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'cat-5',
-    name: 'Software',
-    type: 'expense',
-    color: '#EF4444',
-    userId: 'demo-user',
-    createdAt: new Date().toISOString(),
-  },
-];
 
 const AddEntry = () => {
   const { user } = useAuth();
@@ -81,24 +38,28 @@ const AddEntry = () => {
   const profit = formData.revenue - formData.cost;
 
   useEffect(() => {
-    // Load demo categories
-    const loadDemoCategories = () => {
+    const fetchCategories = async () => {
+      if (!user) return;
+      
       try {
-        // Simulate loading time
-        setTimeout(() => {
-          setCategories(demoCategories);
-          setLoading(false);
-        }, 500);
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name');
+
+        if (error) throw error;
+        
+        setCategories(data || []);
       } catch (error) {
-        console.error('Error loading demo categories:', error);
+        console.error('Error fetching categories:', error);
         addToast('error', 'Failed to load categories');
+      } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      loadDemoCategories();
-    }
+    fetchCategories();
   }, [user, addToast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -125,28 +86,30 @@ const AddEntry = () => {
     try {
       setSubmitting(true);
       
-      // Simulate saving to backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Get existing entries from localStorage
-      const existingEntries = JSON.parse(localStorage.getItem('demo_entries') || '[]');
-      
-      // Create new entry
-      const newEntry = {
-        id: 'entry-' + Date.now(),
-        date: formData.date,
-        productOrService: formData.productOrService,
-        revenue: formData.revenue,
-        cost: formData.cost,
-        categoryId: formData.categoryId,
-        notes: formData.notes || null,
-        userId: user.id,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Save to localStorage
-      const updatedEntries = [newEntry, ...existingEntries];
-      localStorage.setItem('demo_entries', JSON.stringify(updatedEntries));
+      const { error } = await supabase
+        .from('entries')
+        .insert([{
+          date: formData.date,
+          product_or_service: formData.productOrService,
+          revenue: formData.revenue,
+          cost: formData.cost,
+          category_id: formData.categoryId,
+          notes: formData.notes || null,
+          user_id: user.id
+        }]);
+
+      if (error) throw error;
+
+      // Update daily streak
+      const today = new Date().toISOString().split('T')[0];
+      await supabase
+        .from('daily_streaks')
+        .upsert([{
+          user_id: user.id,
+          date: today
+        }], {
+          onConflict: 'user_id,date'
+        });
       
       addToast('success', 'Entry added successfully');
       
@@ -176,8 +139,8 @@ const AddEntry = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add New Entry</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <h2 className="text-2xl font-bold text-secondary-900">Add New Entry</h2>
+        <p className="text-secondary-600 mt-2">
           Record your income and expenses to keep track of your finances.
         </p>
       </motion.div>
@@ -185,7 +148,7 @@ const AddEntry = () => {
       <div className="text-center py-12">
         <div className="max-w-md mx-auto">
           <motion.div 
-            className="w-24 h-24 bg-primary-50 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6"
+            className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-6"
             whileHover={{ 
               scale: 1.1, 
               backgroundColor: '#E0F2FE',
@@ -197,14 +160,14 @@ const AddEntry = () => {
               whileHover={{ rotate: 90 }}
               transition={{ duration: 0.3 }}
             >
-              <Plus size={48} className="text-primary-600 dark:text-primary-400" />
+              <Plus size={48} className="text-primary-800" />
             </motion.div>
           </motion.div>
           <motion.h3 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-xl font-semibold text-gray-900 dark:text-white mb-4"
+            className="text-xl font-semibold text-secondary-900 mb-4"
           >
             Ready to add an entry?
           </motion.h3>
@@ -212,7 +175,7 @@ const AddEntry = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-gray-600 dark:text-gray-400 mb-8"
+            className="text-secondary-600 mb-8"
           >
             Click the button below to open the entry form and record your financial transaction.
           </motion.p>
@@ -253,9 +216,9 @@ const AddEntry = () => {
                 transition={{ duration: 0.2 }}
               >
                 <label htmlFor="date" className="label flex items-center">
-                  <Calendar size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  <Calendar size={16} className="mr-2 text-secondary-500" />
                   Date
-                  <span className="text-red-500 ml-1">*</span>
+                  <span className="text-error-500 ml-1">*</span>
                 </label>
                 <input
                   type="date"
@@ -274,9 +237,9 @@ const AddEntry = () => {
                 transition={{ duration: 0.2 }}
               >
                 <label htmlFor="productOrService" className="label flex items-center">
-                  <FileText size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  <FileText size={16} className="mr-2 text-secondary-500" />
                   Product/Service
-                  <span className="text-red-500 ml-1">*</span>
+                  <span className="text-error-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -296,12 +259,12 @@ const AddEntry = () => {
                 transition={{ duration: 0.2 }}
               >
                 <label htmlFor="revenue" className="label flex items-center">
-                  <DollarSign size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  <DollarSign size={16} className="mr-2 text-secondary-500" />
                   Revenue
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 dark:text-gray-400">$</span>
+                    <span className="text-secondary-500">$</span>
                   </div>
                   <input
                     type="number"
@@ -323,12 +286,12 @@ const AddEntry = () => {
                 transition={{ duration: 0.2 }}
               >
                 <label htmlFor="cost" className="label flex items-center">
-                  <DollarSign size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  <DollarSign size={16} className="mr-2 text-secondary-500" />
                   Cost
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 dark:text-gray-400">$</span>
+                    <span className="text-secondary-500">$</span>
                   </div>
                   <input
                     type="number"
@@ -350,9 +313,9 @@ const AddEntry = () => {
                 transition={{ duration: 0.2 }}
               >
                 <label htmlFor="categoryId" className="label flex items-center">
-                  <Tag size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  <Tag size={16} className="mr-2 text-secondary-500" />
                   Category
-                  <span className="text-red-500 ml-1">*</span>
+                  <span className="text-error-500 ml-1">*</span>
                 </label>
                 <select
                   id="categoryId"
@@ -387,8 +350,8 @@ const AddEntry = () => {
                   )}
                 </select>
                 {categories.length === 0 && !loading && (
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    No categories found. <a href="/dashboard/categories" className="text-primary-600 dark:text-primary-400 hover:underline">Create one first</a>.
+                  <p className="mt-1 text-sm text-secondary-500">
+                    No categories found. <a href="/categories" className="text-primary-800 hover:underline">Create one first</a>.
                   </p>
                 )}
               </motion.div>
@@ -399,23 +362,23 @@ const AddEntry = () => {
                 transition={{ duration: 0.2 }}
               >
                 <label className="label flex items-center">
-                  <DollarSign size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  <DollarSign size={16} className="mr-2 text-secondary-500" />
                   Profit (Calculated)
                 </label>
-                <div className="input flex items-center bg-gray-50 dark:bg-gray-700 hover:scale-105 transition-transform">
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                <div className="input flex items-center bg-secondary-50 hover:scale-105 transition-transform">
+                  <span className="text-secondary-700 font-medium">
                     ${profit.toFixed(2)}
                   </span>
                   {profit > 0 ? (
-                    <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 py-1 px-2 rounded-full">
+                    <span className="ml-2 text-xs bg-success-100 text-success-800 py-1 px-2 rounded-full">
                       Profit
                     </span>
                   ) : profit < 0 ? (
-                    <span className="ml-2 text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 py-1 px-2 rounded-full">
+                    <span className="ml-2 text-xs bg-error-100 text-error-800 py-1 px-2 rounded-full">
                       Loss
                     </span>
                   ) : (
-                    <span className="ml-2 text-xs bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-300 py-1 px-2 rounded-full">
+                    <span className="ml-2 text-xs bg-secondary-200 text-secondary-800 py-1 px-2 rounded-full">
                       Break Even
                     </span>
                   )}
@@ -429,7 +392,7 @@ const AddEntry = () => {
               transition={{ duration: 0.2 }}
             >
               <label htmlFor="notes" className="label flex items-center">
-                <FileText size={16} className="mr-2 text-gray-500 dark:text-gray-400" />
+                <FileText size={16} className="mr-2 text-secondary-500" />
                 Notes (Optional)
               </label>
               <textarea
@@ -443,7 +406,7 @@ const AddEntry = () => {
             </motion.div>
             
             {/* Submit Button */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
               <motion.button
                 type="button"
                 onClick={() => setShowModal(false)}
