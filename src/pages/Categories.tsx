@@ -5,6 +5,9 @@ import { Category } from '../types';
 import { Plus, Edit, Trash, Tag, Circle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FullscreenModal from '../components/ui/FullscreenModal';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { motion } from 'framer-motion';
 
 // Available colors
 const colorOptions = [
@@ -190,48 +193,50 @@ const Categories = () => {
     <div className="max-w-4xl mx-auto animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-secondary-900">Manage Categories</h2>
-          <p className="text-secondary-600 mt-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Categories</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Create and manage categories for organizing your income and expenses.
           </p>
         </div>
-        <button
+        <Button
           onClick={() => {
             resetForm();
             setShowModal(true);
           }}
-          className="btn-primary flex items-center gap-2"
+          variant="primary"
+          className="flex items-center gap-2"
         >
           <Plus size={18} />
           Add Category
-        </button>
+        </Button>
       </div>
       
       {loading ? (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-2 border-primary-800 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-secondary-600">Loading categories...</p>
+          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading categories...</p>
         </div>
       ) : !hasCategories ? (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Tag size={48} className="text-primary-800" />
+            <div className="w-24 h-24 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Tag size={48} className="text-primary-600 dark:text-primary-400" />
             </div>
-            <h3 className="text-xl font-semibold text-secondary-900 mb-4">No categories yet</h3>
-            <p className="text-secondary-600 mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">No categories yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
               Create your first category to start organizing your financial entries.
             </p>
-            <button
+            <Button
               onClick={() => {
                 resetForm();
                 setShowModal(true);
               }}
-              className="btn-primary flex items-center gap-2 mx-auto"
+              variant="primary"
+              className="flex items-center gap-2 mx-auto"
             >
               <Plus size={18} />
               Create First Category
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -239,38 +244,39 @@ const Categories = () => {
           {/* Income Categories */}
           <div className="card">
             <div className="flex items-center mb-4">
-              <div className="bg-primary-50 p-2 rounded-full mr-3">
-                <TrendingUp size={20} className="text-primary-800" />
+              <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full mr-3">
+                <TrendingUp size={20} className="text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-lg font-semibold">Income Categories</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Income Categories</h3>
             </div>
             
             <ul className="space-y-2">
               {categories
                 .filter((category) => category.type === 'income')
                 .map((category) => (
-                  <li
+                  <motion.li
                     key={category.id}
-                    className="flex items-center justify-between p-3 bg-white border border-secondary-200 rounded-lg hover:bg-secondary-50 transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   >
                     <div className="flex items-center">
                       <span
                         className="w-4 h-4 rounded-full mr-3"
                         style={{ backgroundColor: category.color }}
                       ></span>
-                      <span className="font-medium text-secondary-800">{category.name}</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{category.name}</span>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="p-1 text-secondary-400 hover:text-primary-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         title="Edit category"
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
-                        className="p-1 text-secondary-400 hover:text-error-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         title="Delete category"
                         disabled={deleting === category.id}
                       >
@@ -281,11 +287,11 @@ const Categories = () => {
                         )}
                       </button>
                     </div>
-                  </li>
+                  </motion.li>
                 ))}
               
               {categories.filter((category) => category.type === 'income').length === 0 && (
-                <li className="text-center py-4 text-secondary-500">
+                <li className="text-center py-4 text-gray-500 dark:text-gray-400">
                   No income categories found.
                 </li>
               )}
@@ -295,38 +301,39 @@ const Categories = () => {
           {/* Expense Categories */}
           <div className="card">
             <div className="flex items-center mb-4">
-              <div className="bg-error-50 p-2 rounded-full mr-3">
-                <TrendingDown size={20} className="text-error-600" />
+              <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-full mr-3">
+                <TrendingDown size={20} className="text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-lg font-semibold">Expense Categories</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expense Categories</h3>
             </div>
             
             <ul className="space-y-2">
               {categories
                 .filter((category) => category.type === 'expense')
                 .map((category) => (
-                  <li
+                  <motion.li
                     key={category.id}
-                    className="flex items-center justify-between p-3 bg-white border border-secondary-200 rounded-lg hover:bg-secondary-50 transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   >
                     <div className="flex items-center">
                       <span
                         className="w-4 h-4 rounded-full mr-3"
                         style={{ backgroundColor: category.color }}
                       ></span>
-                      <span className="font-medium text-secondary-800">{category.name}</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{category.name}</span>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="p-1 text-secondary-400 hover:text-primary-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         title="Edit category"
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
-                        className="p-1 text-secondary-400 hover:text-error-600 transition-colors"
+                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         title="Delete category"
                         disabled={deleting === category.id}
                       >
@@ -337,11 +344,11 @@ const Categories = () => {
                         )}
                       </button>
                     </div>
-                  </li>
+                  </motion.li>
                 ))}
               
               {categories.filter((category) => category.type === 'expense').length === 0 && (
-                <li className="text-center py-4 text-secondary-500">
+                <li className="text-center py-4 text-gray-500 dark:text-gray-400">
                   No expense categories found.
                 </li>
               )}
@@ -364,15 +371,14 @@ const Categories = () => {
               <div>
                 <label htmlFor="name" className="label">
                   Category Name
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   id="name"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="input"
                   placeholder="e.g., Consulting, Office Supplies"
                   required
                 />
@@ -381,7 +387,7 @@ const Categories = () => {
               <div>
                 <label htmlFor="type" className="label">
                   Type
-                  <span className="text-error-500 ml-1">*</span>
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <select
                   id="type"
@@ -417,7 +423,7 @@ const Categories = () => {
             </div>
             
             <div className="flex mt-2 items-center space-x-2">
-              <span className="text-sm text-secondary-600">Preview:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Preview:</span>
               <span
                 className="inline-block w-4 h-4 rounded-full"
                 style={{ backgroundColor: formData.color }}
@@ -430,20 +436,20 @@ const Categories = () => {
               </span>
             </div>
             
-            <div className="flex justify-end gap-3 pt-4 border-t border-secondary-200">
-              <button
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button
                 type="button"
                 onClick={() => {
                   setShowModal(false);
                   resetForm();
                 }}
-                className="btn-secondary"
+                variant="secondary"
               >
                 Cancel
-              </button>
-              <button type="submit" className="btn-primary">
+              </Button>
+              <Button type="submit" variant="primary">
                 {editingId ? 'Update Category' : 'Add Category'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

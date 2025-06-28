@@ -6,6 +6,7 @@ import DashboardMain from './DashboardMain';
 import AddEntry from './AddEntry';
 import Categories from './Categories';
 import DebtsAndCredits from './DebtsAndCredits';
+import Reports from './Reports';
 
 export const Dashboard: React.FC = () => {
   return (
@@ -21,6 +22,7 @@ export const Dashboard: React.FC = () => {
           <Route path="add-entry" element={<AddEntry />} />
           <Route path="categories" element={<Categories />} />
           <Route path="debts-credits" element={<DebtsAndCredits />} />
+          <Route path="reports" element={<Reports />} />
         </Routes>
       </motion.div>
     </Layout>
