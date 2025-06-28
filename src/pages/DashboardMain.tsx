@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from "axios"
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { supabase } from '../lib/supabase';
 import { 
   LineChart, Line, BarChart, Bar, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -27,13 +28,14 @@ const mockRevenueData: ChartData[] = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 const DashboardMain = () => {
+  const { user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [summary] = useState<DashboardSummary>(mockSummary);
   const [revenueData] = useState<ChartData[]>(mockRevenueData);
   const [monthlyComparison] = useState<MonthlyComparison[]>([]);
   const [loading, setLoading] = useState(true);
-  const [entries, setEntries] = useState([])
+  const [entries, setEntries] = useState([]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -51,20 +53,28 @@ const DashboardMain = () => {
 
   useEffect(() => {
     const getEntries = async () => {
+      if (!user) return;
+      
       try {
-        const response = await axios.get("http://localhost:5000/api/entries", {
-          withCredentials: true
-        });
-        if (response.data || response.status === 200) {
-          setEntries(response.data.entries);
+        const { data, error } = await supabase
+          .from('entries')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false });
+
+        if (error) {
+          throw error;
         }
+
+        setEntries(data || []);
       } catch (error) {
         console.error('Error fetching entries:', error);
         addToast('error', 'Failed to load entries');
       }
-    }
+    };
+
     getEntries();
-  }, [addToast]);
+  }, [user, addToast]);
 
   if (loading) {
     return (
@@ -129,7 +139,7 @@ const DashboardMain = () => {
           animate={{ opacity: 1, x: 0 }}
           className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100/60 dark:bg-gray-700/60 px-3 py-1 rounded-full backdrop-blur-sm hover:bg-gray-200/60 dark:hover:bg-gray-600/60 transition-colors cursor-default"
         >
-          Demo Mode - Sample Data
+          {entries.length > 0 ? `${entries.length} entries loaded` : 'Demo Mode - Sample Data'}
         </motion.div>
       </div>
 
@@ -258,9 +268,10 @@ const DashboardMain = () => {
           className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col w-full min-h-[400px]"
           whileHover={{ 
             y: -4, 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            transition: { duration: 0.2 }
+            scale: 1.02,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
           }}
+          transition={{ duration: 0.2 }}
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white">
             Revenue & Profit Over Time
