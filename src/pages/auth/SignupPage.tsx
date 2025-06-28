@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
-import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 
 export const SignupPage: React.FC = () => {
-  const { signup } = useAuth();
+  axios.defaults.withCredentials = true;
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const [formData, setFormData] = useState({
-    firstName: 'Demo',
-    lastName: 'User',
-    email: 'demo@rieno.com',
-    password: 'demo123',
-    confirmPassword: 'demo123',
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,10 +54,27 @@ export const SignupPage: React.FC = () => {
     }
 
     try {
-      await signup(formData.email, formData.password);
+      const response = await axios.post("http://localhost:5000/auth/signup", {
+        firstname: formData.firstName,
+        lastname: formData.lastName,
+        email: formData.email,
+        password: formData.password
+      }, {
+        withCredentials: true
+      });
+
+      if (response.data || response.status === 200) {
+        console.log(response, "user successfully signed up");
+        addToast('success', 'Account created successfully!');
+        navigate('/dashboard');
+        return;
+      } else {
+        console.log(error, "There was an error signing up");
+        setError('Failed to create account. Please try again.');
+      }
     } catch (err: any) {
-      console.error('Signup error:', err);
-      const errorMessage = err.message || 'Account creation failed. Please try again.';
+      console.log(err, "failed to create account. Please try again");
+      const errorMessage = err.response?.data?.error || 'Failed to create account. Please try again.';
       setError(errorMessage);
       addToast('error', errorMessage);
     } finally {
@@ -71,22 +89,6 @@ export const SignupPage: React.FC = () => {
     }));
     // Clear error when user starts typing
     if (error) setError('');
-  };
-
-  const handleDemoSignup = async () => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      await signup('demo@rieno.com', 'demo123');
-    } catch (err: any) {
-      console.error('Demo signup error:', err);
-      const errorMessage = err.message || 'Demo signup failed. Please try again';
-      setError(errorMessage);
-      addToast('error', errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -119,28 +121,6 @@ export const SignupPage: React.FC = () => {
         </div>
 
         <Card className="p-8 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700">
-          {/* Demo Mode Notice */}
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">Demo Mode</h3>
-                <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                  Use any details or click the demo button
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={handleDemoSignup}
-                variant="outline"
-                size="sm"
-                isLoading={isLoading}
-                className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/30"
-              >
-                Quick Demo
-              </Button>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <motion.div
@@ -159,7 +139,7 @@ export const SignupPage: React.FC = () => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
-                placeholder="Demo"
+                placeholder="John"
                 required
               />
               <Input
@@ -168,7 +148,7 @@ export const SignupPage: React.FC = () => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
-                placeholder="User"
+                placeholder="Doe"
                 required
               />
             </div>
@@ -179,7 +159,7 @@ export const SignupPage: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="demo@rieno.com"
+              placeholder="john@example.com"
               required
             />
 
@@ -189,7 +169,7 @@ export const SignupPage: React.FC = () => {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="demo123"
+              placeholder="Create a strong password"
               showPasswordToggle
               required
             />
@@ -200,7 +180,7 @@ export const SignupPage: React.FC = () => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              placeholder="demo123"
+              placeholder="Confirm your password"
               showPasswordToggle
               required
             />

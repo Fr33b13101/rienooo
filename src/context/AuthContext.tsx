@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
+import { supabase, getCurrentUser } from '../lib/supabase';
 import { User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
@@ -27,104 +28,180 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  // Initialize auth state - check for existing demo user in localStorage
+  // Initialize auth state and set up auth listener
   useEffect(() => {
-    const initializeAuth = () => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
       try {
-        const savedUser = localStorage.getItem('demo_user');
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setCheckingAuth(false);
+          }
+          return;
+        }
+
+        if (session?.user && mounted) {
+          const currentUser = await getCurrentUser();
+          if (currentUser && mounted) {
+            setUser({
+              id: currentUser.id,
+              email: currentUser.email || '',
+              createdAt: currentUser.created_at,
+            });
+          }
         }
       } catch (error) {
-        console.error('Error loading saved user:', error);
-        localStorage.removeItem('demo_user');
+        console.error('Error initializing auth:', error);
       } finally {
-        setCheckingAuth(false);
+        if (mounted) {
+          setCheckingAuth(false);
+        }
       }
     };
 
-    // Simulate loading time
-    const timer = setTimeout(initializeAuth, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    initializeAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+
+        try {
+          if (event === 'SIGNED_IN' && session?.user) {
+            const currentUser = await getCurrentUser();
+            if (currentUser && mounted) {
+              setUser({
+                id: currentUser.id,
+                email: currentUser.email || '',
+                createdAt: currentUser.created_at,
+              });
+              navigate('/dashboard');
+            }
+          } else if (event === 'SIGNED_OUT') {
+            if (mounted) {
+              setUser(null);
+              navigate('/login');
+            }
+          }
+        } catch (error) {
+          console.error('Error handling auth state change:', error);
+          if (mounted) {
+            addToast('error', 'Authentication error occurred');
+          }
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate, addToast]);
 
   const login = async (email: string, password: string) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create demo user
-      const demoUser: User = {
-        id: 'demo-user-' + Date.now(),
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        createdAt: new Date().toISOString(),
-      };
+        password,
+      });
       
-      // Save to localStorage for persistence
-      localStorage.setItem('demo_user', JSON.stringify(demoUser));
+      if (error) {
+        throw error;
+      }
       
-      setUser(demoUser);
-      addToast('success', 'Demo login successful!');
-      navigate('/dashboard');
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          createdAt: data.user.created_at,
+        });
+        addToast('success', 'Login successful!');
+        navigate('/dashboard');
+      }
     } catch (error: any) {
-      console.error('Demo login error:', error);
-      throw new Error('Demo login failed. Please try again');
+      console.error('Login error:', error);
+      
+      // Handle specific error types
+      if (error.message?.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password');
+      } else if (error.message?.includes('Email not confirmed')) {
+        throw new Error('Please check your email and confirm your account');
+      } else if (error.message?.includes('Too many requests')) {
+        throw new Error('Too many login attempts. Please try again later');
+      } else {
+        throw new Error('Login failed. Please try again');
+      }
     }
   };
 
   const loginWithGoogle = async () => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
       
-      // Create demo user with Google email
-      const demoUser: User = {
-        id: 'demo-google-user-' + Date.now(),
-        email: 'demo@google.com',
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('demo_user', JSON.stringify(demoUser));
-      
-      setUser(demoUser);
-      addToast('success', 'Demo Google login successful!');
-      navigate('/dashboard');
+      if (error) {
+        throw error;
+      }
     } catch (error: any) {
-      console.error('Demo Google login error:', error);
-      throw new Error('Demo Google login failed. Please try again');
+      console.error('Google login error:', error);
+      throw new Error('Google login failed. Please try again');
     }
   };
 
   const signup = async (email: string, password: string) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create demo user
-      const demoUser: User = {
-        id: 'demo-signup-user-' + Date.now(),
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
-        createdAt: new Date().toISOString(),
-      };
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
       
-      // Save to localStorage for persistence
-      localStorage.setItem('demo_user', JSON.stringify(demoUser));
+      if (error) {
+        throw error;
+      }
       
-      setUser(demoUser);
-      addToast('success', 'Demo account created successfully!');
-      navigate('/dashboard');
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          createdAt: data.user.created_at,
+        });
+        addToast('success', 'Account created successfully!');
+        navigate('/dashboard');
+      }
     } catch (error: any) {
-      console.error('Demo signup error:', error);
-      throw new Error('Demo account creation failed. Please try again');
+      console.error('Signup error:', error);
+      
+      // Handle specific error types
+      if (error.message?.includes('User already registered')) {
+        throw new Error('An account with this email already exists');
+      } else if (error.message?.includes('Password should be at least')) {
+        throw new Error('Password must be at least 6 characters long');
+      } else if (error.message?.includes('Invalid email')) {
+        throw new Error('Please enter a valid email address');
+      } else {
+        throw new Error('Account creation failed. Please try again');
+      }
     }
   };
 
   const logout = async () => {
     try {
-      // Remove from localStorage
-      localStorage.removeItem('demo_user');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
       
       setUser(null);
       addToast('success', 'Logged out successfully');

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from "axios"
 import { useToast } from '../hooks/useToast';
 import { 
   LineChart, Line, BarChart, Bar, 
@@ -32,7 +33,7 @@ const DashboardMain = () => {
   const [revenueData] = useState<ChartData[]>(mockRevenueData);
   const [monthlyComparison] = useState<MonthlyComparison[]>([]);
   const [loading, setLoading] = useState(true);
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState([])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -48,16 +49,22 @@ const DashboardMain = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Demo data - no backend calls needed
   useEffect(() => {
-    // Simulate loading demo entries
-    const demoEntries = [
-      { id: 1, product: 'Website Design', revenue: 2500, cost: 500, profit: 2000 },
-      { id: 2, product: 'Logo Design', revenue: 800, cost: 100, profit: 700 },
-      { id: 3, product: 'Consulting', revenue: 1200, cost: 0, profit: 1200 },
-    ];
-    setEntries(demoEntries as any);
-  }, []);
+    const getEntries = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/entries", {
+          withCredentials: true
+        });
+        if (response.data || response.status === 200) {
+          setEntries(response.data.entries);
+        }
+      } catch (error) {
+        console.error('Error fetching entries:', error);
+        addToast('error', 'Failed to load entries');
+      }
+    }
+    getEntries();
+  }, [addToast]);
 
   if (loading) {
     return (
