@@ -22,10 +22,12 @@
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
     "baseUrl": "./",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "**/*.js"
   ],
   "exclude": [
     "node_modules",

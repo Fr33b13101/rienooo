@@ -9,19 +9,25 @@ import { logout } from './routes/auth/logout';
 import { profileRouter } from './routes/profile';
 import { TransactionsRouter } from './routes/DebtAndCredit/transactionRouter'
 
-
 dotenv.config();
 
 const app = express();
-const PORT =  5000
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', "http://localhost:5174", "http://localhost:5175", 'https://inspiring-platypus-8b7479.netlify.app'], // Adjust this to your client URL
-  credentials: true, // Allow cookies to be sent with requests
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5174', 
+    'http://localhost:5175', 
+    'https://inspiring-platypus-8b7479.netlify.app',
+    /\.netlify\.app$/,
+    /\.netlify\.live$/
+  ],
+  credentials: true,
 }));
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Auth Route
 app.use("/auth", login)
@@ -30,19 +36,21 @@ app.use("/auth", logout)
 app.use("/api", profileRouter);
 app.use("/api", TransactionsRouter)
 
-
-
 app.get("/", (req: Request, res: Response) => {
-  res.send("Welcome to Rieno API");
+  res.json({ message: "Welcome to Rieno API", status: "running" });
 })
-
 
 app.get("/:param", (req: Request, res: Response) => {
-  res.send(`You have accessed the parameter: ${req.params.param}`);
+  res.json({ message: `You have accessed the parameter: ${req.params.param}` });
 })
 
-app.use(express.urlencoded({ extended: true }));
+// Export the app for serverless deployment
+export default app;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT || 3000}`);
-});
+// Only start the server if this file is run directly (not imported)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
