@@ -62,7 +62,7 @@ me.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id: userData.user.id,
@@ -72,7 +72,7 @@ me.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Response
     });
   } catch (error) {
     console.error('Get current user error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: 'Internal server error' 
     });
