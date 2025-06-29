@@ -1,15 +1,15 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, getCurrentUser } from '../lib/supabase';
 import { User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import { apiClient } from '../lib/api';
 
 interface AuthContextType {
   user: User | null;
   checkingAuth: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -28,32 +28,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  // Initialize auth state and set up auth listener
+  // Initialize auth state
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const response = await apiClient.getCurrentUser();
         
-        if (error) {
-          console.error('Error getting session:', error);
-          if (mounted) {
-            setCheckingAuth(false);
-          }
-          return;
-        }
-
-        if (session?.user && mounted) {
-          const currentUser = await getCurrentUser();
-          if (currentUser && mounted) {
-            setUser({
-              id: currentUser.id,
-              email: currentUser.email || '',
-              createdAt: currentUser.created_at,
-            });
-          }
+        if (response.success && response.data && mounted) {
+          setUser({
+            id: response.data.id,
+            email: response.data.email,
+            createdAt: response.data.createdAt,
+          });
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -66,59 +54,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     initializeAuth();
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        try {
-          if (event === 'SIGNED_IN' && session?.user) {
-            const currentUser = await getCurrentUser();
-            if (currentUser && mounted) {
-              setUser({
-                id: currentUser.id,
-                email: currentUser.email || '',
-                createdAt: currentUser.created_at,
-              });
-              navigate('/dashboard');
-            }
-          } else if (event === 'SIGNED_OUT') {
-            if (mounted) {
-              setUser(null);
-              navigate('/login');
-            }
-          }
-        } catch (error) {
-          console.error('Error handling auth state change:', error);
-          if (mounted) {
-            addToast('error', 'Authentication error occurred');
-          }
-        }
-      }
-    );
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
-  }, [navigate, addToast]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const response = await apiClient.login({ email, password });
       
-      if (error) {
-        throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Login failed');
       }
       
-      if (data.user) {
+      if (response.data?.user) {
         setUser({
-          id: data.user.id,
-          email: data.user.email || '',
-          createdAt: data.user.created_at,
+          id: response.data.user.id,
+          email: response.data.user.email,
+          createdAt: response.data.user.createdAt,
         });
         addToast('success', 'Login successful!');
         navigate('/dashboard');
@@ -134,48 +87,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (error.message?.includes('Too many requests')) {
         throw new Error('Too many login attempts. Please try again later');
       } else {
-        throw new Error('Login failed. Please try again');
+        throw new Error(error.message || 'Login failed. Please try again');
       }
     }
   };
 
   const loginWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-      
-      if (error) {
-        throw error;
-      }
+      // For now, show a message that Google login is not implemented
+      addToast('info', 'Google login will be implemented soon');
+      throw new Error('Google login not yet implemented');
     } catch (error: any) {
       console.error('Google login error:', error);
       throw new Error('Google login failed. Please try again');
     }
   };
 
-  const signup = async (email: string, password: string) => {
+  const signup = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
+      const response = await apiClient.signup({ 
+        email, 
+        password, 
+        firstName, 
+        lastName 
       });
       
-      if (error) {
-        throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Signup failed');
       }
       
-      if (data.user) {
+      if (response.data?.user) {
         setUser({
-          id: data.user.id,
-          email: data.user.email || '',
-          createdAt: data.user.created_at,
+          id: response.data.user.id,
+          email: response.data.user.email,
+          createdAt: response.data.user.createdAt,
         });
         addToast('success', 'Account created successfully!');
         navigate('/dashboard');
@@ -191,16 +136,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (error.message?.includes('Invalid email')) {
         throw new Error('Please enter a valid email address');
       } else {
-        throw new Error('Account creation failed. Please try again');
+        throw new Error(error.message || 'Account creation failed. Please try again');
       }
     }
   };
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
+      const response = await apiClient.logout();
+      
+      if (!response.success) {
+        console.warn('Logout request failed, but clearing local state');
       }
       
       setUser(null);
@@ -208,7 +154,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       navigate('/login');
     } catch (error: any) {
       console.error('Logout error:', error);
-      addToast('error', 'Logout failed. Please try again');
+      // Still clear local state even if API call fails
+      setUser(null);
+      addToast('success', 'Logged out successfully');
+      navigate('/login');
     }
   };
 

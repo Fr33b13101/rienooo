@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { signup } from './routes/auth/signup';
 import { login } from "./routes/auth/login"
 import { logout } from './routes/auth/logout';
+import { me } from './routes/auth/me';
 import { profileRouter } from './routes/profile';
 import { TransactionsRouter } from './routes/DebtAndCredit/transactionRouter'
 
@@ -29,10 +30,11 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Auth Route
+// Auth Routes
 app.use("/auth", login)
 app.use("/auth", signup)
 app.use("/auth", logout)
+app.use("/auth", me)
 app.use("/api", profileRouter);
 app.use("/api", TransactionsRouter)
 
