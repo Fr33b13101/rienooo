@@ -1,6 +1,6 @@
 // API client for backend communication
 const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://inspiring-platypus-8b7479.netlify.app/.netlify/functions'
+  ? 'https://inspiring-platypus-8b7479.netlify.app/.netlify/functions/api'
   : '/api';
 
 interface ApiResponse<T = any> {
@@ -77,37 +77,37 @@ class ApiClient {
 
   // Authentication endpoints
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.request<AuthResponse>('/api/auth/login', {
+    return this.request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
   async signup(userData: SignupRequest): Promise<ApiResponse<AuthResponse>> {
-    return this.request<AuthResponse>('/api/auth/signup', {
+    return this.request<AuthResponse>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async logout(): Promise<ApiResponse> {
-    return this.request('/api/auth/logout', {
+    return this.request('/auth/logout', {
       method: 'POST',
     });
   }
 
   async getCurrentUser(): Promise<ApiResponse<AuthResponse['user']>> {
-    return this.request<AuthResponse['user']>('/api/auth/me');
+    return this.request<AuthResponse['user']>('/auth/me');
   }
 
   // Profile endpoints
   async getProfile(): Promise<ApiResponse> {
-    return this.request('/api/profile');
+    return this.request('/profile');
   }
 
   // Transactions endpoints
   async getTransactions(): Promise<ApiResponse> {
-    return this.request('/api/transactions');
+    return this.request('/transactions');
   }
 }
 
