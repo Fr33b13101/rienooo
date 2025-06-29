@@ -1,7 +1,7 @@
 // API client for backend communication
 const API_BASE_URL = import.meta.env.PROD 
   ? 'https://inspiring-platypus-8b7479.netlify.app/.netlify/functions'
-  : '/.netlify/functions';
+  : '/api';
 
 interface ApiResponse<T = any> {
   success: boolean;
