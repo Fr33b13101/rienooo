@@ -34,8 +34,11 @@ function AppContent() {
       <Toast />
       <Suspense fallback={<Loading fullScreen />}>
         <Routes>
+          {/* Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
           {/* Public routes */}
-          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
           <Route 
             path="/login" 
             element={!user ? <LoginPage /> : <Navigate to="/dashboard" replace />} 
