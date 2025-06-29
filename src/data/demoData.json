@@ -1,0 +1,224 @@
+{
+  "user": {
+    "id": "demo_user_id",
+    "email": "demo@rieno.app",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  "summary": {
+    "totalRevenue": 125000,
+    "totalProfit": 87500,
+    "amountOwed": 12500,
+    "amountYouOwe": 3200,
+    "dailyStreak": 28
+  },
+  "monthlyData": [
+    {
+      "month": "Jan 2024",
+      "revenue": 18500,
+      "cost": 12200,
+      "profit": 6300,
+      "entries": 15
+    },
+    {
+      "month": "Feb 2024",
+      "revenue": 22100,
+      "cost": 14800,
+      "profit": 7300,
+      "entries": 18
+    },
+    {
+      "month": "Mar 2024",
+      "revenue": 19800,
+      "cost": 13500,
+      "profit": 6300,
+      "entries": 16
+    },
+    {
+      "month": "Apr 2024",
+      "revenue": 24500,
+      "cost": 16200,
+      "profit": 8300,
+      "entries": 21
+    },
+    {
+      "month": "May 2024",
+      "revenue": 21200,
+      "cost": 14100,
+      "profit": 7100,
+      "entries": 19
+    },
+    {
+      "month": "Jun 2024",
+      "revenue": 18900,
+      "cost": 12800,
+      "profit": 6100,
+      "entries": 17
+    }
+  ],
+  "dailyRevenue": [
+    { "name": "Day 1", "revenue": 1200, "profit": 800 },
+    { "name": "Day 2", "revenue": 1800, "profit": 1200 },
+    { "name": "Day 3", "revenue": 1600, "profit": 1100 },
+    { "name": "Day 4", "revenue": 2200, "profit": 1500 },
+    { "name": "Day 5", "revenue": 2800, "profit": 1900 },
+    { "name": "Day 6", "revenue": 2400, "profit": 1600 },
+    { "name": "Day 7", "revenue": 3200, "profit": 2100 },
+    { "name": "Day 8", "revenue": 1900, "profit": 1300 },
+    { "name": "Day 9", "revenue": 2100, "profit": 1400 },
+    { "name": "Day 10", "revenue": 1700, "profit": 1200 },
+    { "name": "Day 11", "revenue": 2300, "profit": 1600 },
+    { "name": "Day 12", "revenue": 2600, "profit": 1800 },
+    { "name": "Day 13", "revenue": 2000, "profit": 1400 },
+    { "name": "Day 14", "revenue": 2500, "profit": 1700 },
+    { "name": "Day 15", "revenue": 1800, "profit": 1200 },
+    { "name": "Day 16", "revenue": 2200, "profit": 1500 },
+    { "name": "Day 17", "revenue": 2700, "profit": 1800 },
+    { "name": "Day 18", "revenue": 2100, "profit": 1400 },
+    { "name": "Day 19", "revenue": 2400, "profit": 1600 },
+    { "name": "Day 20", "revenue": 1900, "profit": 1300 },
+    { "name": "Day 21", "revenue": 2800, "profit": 1900 },
+    { "name": "Day 22", "revenue": 2300, "profit": 1600 },
+    { "name": "Day 23", "revenue": 2600, "profit": 1800 },
+    { "name": "Day 24", "revenue": 2000, "profit": 1400 },
+    { "name": "Day 25", "revenue": 2500, "profit": 1700 },
+    { "name": "Day 26", "revenue": 2200, "profit": 1500 },
+    { "name": "Day 27", "revenue": 2900, "profit": 2000 },
+    { "name": "Day 28", "revenue": 2400, "profit": 1600 },
+    { "name": "Day 29", "revenue": 2700, "profit": 1800 },
+    { "name": "Day 30", "revenue": 3100, "profit": 2100 }
+  ],
+  "categories": [
+    { "name": "Consulting", "value": 45000, "color": "#10B981" },
+    { "name": "Web Development", "value": 32000, "color": "#3B82F6" },
+    { "name": "Design Services", "value": 28000, "color": "#8B5CF6" },
+    { "name": "Marketing", "value": 15000, "color": "#F59E0B" },
+    { "name": "Training", "value": 5000, "color": "#EF4444" }
+  ],
+  "entries": [
+    {
+      "id": "demo_entry_1",
+      "date": "2024-06-15",
+      "productOrService": "Website Redesign",
+      "revenue": 2500,
+      "cost": 800,
+      "categoryId": "demo_cat_1",
+      "notes": "Complete website overhaul for client",
+      "userId": "demo_user_id",
+      "createdAt": "2024-06-15T10:00:00.000Z"
+    },
+    {
+      "id": "demo_entry_2",
+      "date": "2024-06-14",
+      "productOrService": "SEO Consultation",
+      "revenue": 800,
+      "cost": 200,
+      "categoryId": "demo_cat_2",
+      "notes": "3-hour SEO strategy session",
+      "userId": "demo_user_id",
+      "createdAt": "2024-06-14T14:30:00.000Z"
+    },
+    {
+      "id": "demo_entry_3",
+      "date": "2024-06-13",
+      "productOrService": "Logo Design",
+      "revenue": 1200,
+      "cost": 300,
+      "categoryId": "demo_cat_3",
+      "notes": "Brand identity package",
+      "userId": "demo_user_id",
+      "createdAt": "2024-06-13T09:15:00.000Z"
+    }
+  ],
+  "categories_list": [
+    {
+      "id": "demo_cat_1",
+      "name": "Web Development",
+      "type": "income",
+      "color": "#10B981",
+      "userId": "demo_user_id",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "demo_cat_2",
+      "name": "Consulting",
+      "type": "income",
+      "color": "#3B82F6",
+      "userId": "demo_user_id",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "demo_cat_3",
+      "name": "Design",
+      "type": "income",
+      "color": "#8B5CF6",
+      "userId": "demo_user_id",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "demo_cat_4",
+      "name": "Office Supplies",
+      "type": "expense",
+      "color": "#EF4444",
+      "userId": "demo_user_id",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "demo_cat_5",
+      "name": "Software",
+      "type": "expense",
+      "color": "#F59E0B",
+      "userId": "demo_user_id",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "debtsCredits": [
+    {
+      "id": "demo_debt_1",
+      "name": "ABC Corp",
+      "amount": 5500,
+      "reason": "Website development project",
+      "date": "2024-06-01",
+      "dueDate": "2024-06-30",
+      "status": "unpaid",
+      "type": "receivable",
+      "userId": "demo_user_id",
+      "createdAt": "2024-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "demo_debt_2",
+      "name": "XYZ Marketing",
+      "amount": 3200,
+      "reason": "Logo design and branding",
+      "date": "2024-05-15",
+      "dueDate": "2024-07-15",
+      "status": "unpaid",
+      "type": "receivable",
+      "userId": "demo_user_id",
+      "createdAt": "2024-05-15T00:00:00.000Z"
+    },
+    {
+      "id": "demo_debt_3",
+      "name": "Office Depot",
+      "amount": 800,
+      "reason": "Office equipment purchase",
+      "date": "2024-06-10",
+      "dueDate": "2024-07-10",
+      "status": "unpaid",
+      "type": "payable",
+      "userId": "demo_user_id",
+      "createdAt": "2024-06-10T00:00:00.000Z"
+    },
+    {
+      "id": "demo_debt_4",
+      "name": "Adobe",
+      "amount": 600,
+      "reason": "Creative Cloud subscription",
+      "date": "2024-06-01",
+      "dueDate": "2024-07-01",
+      "status": "paid",
+      "type": "payable",
+      "userId": "demo_user_id",
+      "createdAt": "2024-06-01T00:00:00.000Z"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMon
 import { supabase } from '../lib/supabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
+import { isDemoMode, getDemoMonthlyData, getDemoCategoryData, getDemoEntries, getDemoCategories, simulateApiDelay } from '../lib/demoService';
 
 interface MonthlySummary {
   month: string;
@@ -48,32 +49,56 @@ const Reports = () => {
       try {
         setLoading(true);
         
-        // Fetch entries and categories in parallel
-        const [entriesResponse, categoriesResponse] = await Promise.all([
-          supabase
-            .from('entries')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('date', { ascending: false }),
-          supabase
-            .from('categories')
-            .select('*')
-            .eq('user_id', user.id)
-        ]);
+        if (isDemoMode()) {
+          // Load demo data
+          await simulateApiDelay(600);
+          
+          const demoEntries = getDemoEntries();
+          const demoCategories = getDemoCategories();
+          const demoMonthlyData = getDemoMonthlyData();
+          
+          setEntries(demoEntries);
+          setCategories(demoCategories);
+          
+          // Convert demo monthly data to the expected format
+          const summaries = demoMonthlyData.map((monthData, index) => ({
+            month: monthData.month,
+            year: 2024,
+            totalRevenue: monthData.revenue,
+            totalCost: monthData.cost,
+            totalProfit: monthData.profit,
+            entryCount: monthData.entries,
+            categories: {}
+          }));
+          
+          setMonthlySummaries(summaries);
+        } else {
+          // Fetch real data from Supabase
+          const [entriesResponse, categoriesResponse] = await Promise.all([
+            supabase
+              .from('entries')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('date', { ascending: false }),
+            supabase
+              .from('categories')
+              .select('*')
+              .eq('user_id', user.id)
+          ]);
 
-        if (entriesResponse.error) throw entriesResponse.error;
-        if (categoriesResponse.error) throw categoriesResponse.error;
-        
-        const fetchedEntries = entriesResponse.data || [];
-        const fetchedCategories = categoriesResponse.data || [];
-        
-        setEntries(fetchedEntries);
-        setCategories(fetchedCategories);
-        
-        // Generate monthly summaries
-        const summaries = generateMonthlySummaries(fetchedEntries, fetchedCategories);
-        setMonthlySummaries(summaries);
-        
+          if (entriesResponse.error) throw entriesResponse.error;
+          if (categoriesResponse.error) throw categoriesResponse.error;
+          
+          const fetchedEntries = entriesResponse.data || [];
+          const fetchedCategories = categoriesResponse.data || [];
+          
+          setEntries(fetchedEntries);
+          setCategories(fetchedCategories);
+          
+          // Generate monthly summaries
+          const summaries = generateMonthlySummaries(fetchedEntries, fetchedCategories);
+          setMonthlySummaries(summaries);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         addToast('error', 'Failed to load reports data');
@@ -167,6 +192,10 @@ const Reports = () => {
   };
 
   const getCategoryData = (): CategorySummary[] => {
+    if (isDemoMode()) {
+      return getDemoCategoryData();
+    }
+    
     const categoryTotals: Record<string, { value: number; color: string }> = {};
     
     getFilteredSummaries().forEach(summary => {
@@ -215,7 +244,7 @@ const Reports = () => {
     a.click();
     window.URL.revokeObjectURL(url);
     
-    addToast('success', 'Report exported successfully');
+    addToast('success', isDemoMode() ? 'Demo report exported' : 'Report exported successfully');
   };
 
   if (loading) {
@@ -229,7 +258,7 @@ const Reports = () => {
     );
   }
 
-  if (entries.length === 0) {
+  if (entries.length === 0 && !isDemoMode()) {
     return (
       <div className="max-w-4xl mx-auto animate-fade-in">
         <div className="text-center py-12">
@@ -276,6 +305,11 @@ const Reports = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Financial Reports</h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Monthly summaries and insights into your financial performance.
+            {isDemoMode() && (
+              <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
+                (Demo Mode - sample data)
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -430,6 +464,7 @@ const Reports = () => {
                 <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
               </PieChart>
             </ResponsiveContainer>
+          
           </div>
         </motion.div>
       </div>

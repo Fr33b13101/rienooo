@@ -16,11 +16,14 @@ import { TransactionsRouter } from './routes/DebtAndCredit/transactionRouter'
 
 const app = express();
 
-// Check for required environment variables
-const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+// Check if demo mode is enabled
+const isDemoMode = process.env.DEMO_MODE === 'true';
+
+// Check for required environment variables (skip in demo mode)
+const requiredEnvVars = isDemoMode ? [] : ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
-if (missingEnvVars.length > 0) {
+if (missingEnvVars.length > 0 && !isDemoMode) {
   console.error('Missing required environment variables:', missingEnvVars);
   console.error('Please create a .env file in the root directory with the required variables.');
   console.error('See backend/.env.example for reference.');
@@ -44,12 +47,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
-  const envStatus = missingEnvVars.length === 0 ? 'configured' : 'missing variables';
+  const envStatus = isDemoMode ? 'demo mode' : (missingEnvVars.length === 0 ? 'configured' : 'missing variables');
   res.json({ 
     message: "Welcome to Rieno API", 
     status: "running",
     environment: envStatus,
-    missingVars: missingEnvVars.length > 0 ? missingEnvVars : undefined
+    demoMode: isDemoMode,
+    missingVars: missingEnvVars.length > 0 && !isDemoMode ? missingEnvVars : undefined
   });
 });
 
@@ -73,7 +77,9 @@ if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    if (missingEnvVars.length > 0) {
+    if (isDemoMode) {
+      console.log('🧪 Demo mode is ACTIVE - using mock data');
+    } else if (missingEnvVars.length > 0) {
       console.log('⚠️  Warning: Missing environment variables. Some features may not work.');
     } else {
       console.log('✅ All environment variables configured');

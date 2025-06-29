@@ -8,6 +8,7 @@ import FullscreenModal from '../components/ui/FullscreenModal';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { motion } from 'framer-motion';
+import { isDemoMode, getDemoCategories, simulateApiDelay } from '../lib/demoService';
 
 // Available colors
 const colorOptions = [
@@ -51,15 +52,22 @@ const Categories = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('name');
+        if (isDemoMode()) {
+          // Load demo categories
+          await simulateApiDelay(300);
+          setCategories(getDemoCategories());
+        } else {
+          // Load real categories from Supabase
+          const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('name');
 
-        if (error) throw error;
-        
-        setCategories(data || []);
+          if (error) throw error;
+          
+          setCategories(data || []);
+        }
       } catch (error) {
         console.error('Error fetching categories:', error);
         addToast('error', 'Failed to load categories');
@@ -105,16 +113,24 @@ const Categories = () => {
     try {
       setDeleting(id);
       
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      if (isDemoMode()) {
+        // Simulate delete in demo mode
+        await simulateApiDelay(500);
+        setCategories((prev) => prev.filter(category => category.id !== id));
+        addToast('success', 'Demo category deleted (not actually removed)');
+      } else {
+        // Real delete from Supabase
+        const { error } = await supabase
+          .from('categories')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
-      
-      setCategories((prev) => prev.filter(category => category.id !== id));
-      addToast('success', 'Category deleted successfully');
+        if (error) throw error;
+        
+        setCategories((prev) => prev.filter(category => category.id !== id));
+        addToast('success', 'Category deleted successfully');
+      }
     } catch (error) {
       console.error('Error deleting category:', error);
       addToast('error', 'Failed to delete category');
@@ -137,46 +153,74 @@ const Categories = () => {
     }
     
     try {
-      if (editingId) {
-        // Update existing category
-        const { data, error } = await supabase
-          .from('categories')
-          .update({
+      if (isDemoMode()) {
+        // Simulate save in demo mode
+        await simulateApiDelay(800);
+        
+        if (editingId) {
+          setCategories((prev) =>
+            prev.map((category) =>
+              category.id === editingId 
+                ? { ...category, name: formData.name, type: formData.type, color: formData.color }
+                : category
+            )
+          );
+          addToast('success', 'Demo category updated (not actually saved)');
+        } else {
+          const newCategory: Category = {
+            id: `demo_cat_${Date.now()}`,
             name: formData.name,
             type: formData.type,
             color: formData.color,
-          })
-          .eq('id', editingId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        setCategories((prev) =>
-          prev.map((category) =>
-            category.id === editingId ? data : category
-          )
-        );
-        
-        addToast('success', 'Category updated successfully');
+            userId: user.id,
+            createdAt: new Date().toISOString()
+          };
+          setCategories((prev) => [...prev, newCategory]);
+          addToast('success', 'Demo category added (not actually saved)');
+        }
       } else {
-        // Add new category
-        const { data, error } = await supabase
-          .from('categories')
-          .insert([{
-            name: formData.name,
-            type: formData.type,
-            color: formData.color,
-            user_id: user.id
-          }])
-          .select()
-          .single();
+        // Real Supabase operations
+        if (editingId) {
+          // Update existing category
+          const { data, error } = await supabase
+            .from('categories')
+            .update({
+              name: formData.name,
+              type: formData.type,
+              color: formData.color,
+            })
+            .eq('id', editingId)
+            .eq('user_id', user.id)
+            .select()
+            .single();
 
-        if (error) throw error;
-        
-        setCategories((prev) => [...prev, data]);
-        addToast('success', 'Category added successfully');
+          if (error) throw error;
+          
+          setCategories((prev) =>
+            prev.map((category) =>
+              category.id === editingId ? data : category
+            )
+          );
+          
+          addToast('success', 'Category updated successfully');
+        } else {
+          // Add new category
+          const { data, error } = await supabase
+            .from('categories')
+            .insert([{
+              name: formData.name,
+              type: formData.type,
+              color: formData.color,
+              user_id: user.id
+            }])
+            .select()
+            .single();
+
+          if (error) throw error;
+          
+          setCategories((prev) => [...prev, data]);
+          addToast('success', 'Category added successfully');
+        }
       }
       
       resetForm();
@@ -196,6 +240,11 @@ const Categories = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Categories</h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Create and manage categories for organizing your income and expenses.
+            {isDemoMode() && (
+              <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
+                (Demo Mode - changes won't be saved)
+              </span>
+            )}
           </p>
         </div>
         <Button

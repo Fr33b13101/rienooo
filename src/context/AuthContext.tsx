@@ -3,6 +3,7 @@ import { User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { apiClient } from '../lib/api';
+import { isDemoMode, demoApiResponses, getDemoUser } from '../lib/demoService';
 
 interface AuthContextType {
   user: User | null;
@@ -34,14 +35,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
-        const response = await apiClient.getCurrentUser();
-        
-        if (response.success && response.data && mounted) {
-          setUser({
-            id: response.data.id,
-            email: response.data.email,
-            createdAt: response.data.createdAt,
-          });
+        // Check if demo mode is enabled
+        if (isDemoMode()) {
+          // Auto-login demo user
+          if (mounted) {
+            setUser(getDemoUser());
+            addToast('info', 'Demo mode active - using sample data');
+          }
+        } else {
+          // Normal Supabase auth check
+          const response = await apiClient.getCurrentUser();
+          
+          if (response.success && response.data && mounted) {
+            setUser({
+              id: response.data.id,
+              email: response.data.email,
+              createdAt: response.data.createdAt,
+            });
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -57,11 +68,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [addToast]);
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiClient.login({ email, password });
+      let response;
+      
+      if (isDemoMode()) {
+        // Use demo login
+        response = await demoApiResponses.login(email, password);
+      } else {
+        // Use real API
+        response = await apiClient.login({ email, password });
+      }
       
       if (!response.success) {
         throw new Error(response.error || 'Login failed');
@@ -73,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: response.data.user.email,
           createdAt: response.data.user.createdAt,
         });
-        addToast('success', 'Login successful!');
+        addToast('success', isDemoMode() ? 'Demo login successful!' : 'Login successful!');
         navigate('/dashboard');
       }
     } catch (error: any) {
@@ -94,6 +113,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithGoogle = async () => {
     try {
+      if (isDemoMode()) {
+        // Auto-login demo user for Google login in demo mode
+        setUser(getDemoUser());
+        addToast('success', 'Demo Google login successful!');
+        navigate('/dashboard');
+        return;
+      }
+      
       // For now, show a message that Google login is not implemented
       addToast('info', 'Google login will be implemented soon');
       throw new Error('Google login not yet implemented');
@@ -105,12 +132,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
-      const response = await apiClient.signup({ 
-        email, 
-        password, 
-        firstName, 
-        lastName 
-      });
+      let response;
+      
+      if (isDemoMode()) {
+        // Use demo signup
+        response = await demoApiResponses.signup(email, password, firstName, lastName);
+      } else {
+        // Use real API
+        response = await apiClient.signup({ 
+          email, 
+          password, 
+          firstName, 
+          lastName 
+        });
+      }
       
       if (!response.success) {
         throw new Error(response.error || 'Signup failed');
@@ -122,7 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: response.data.user.email,
           createdAt: response.data.user.createdAt,
         });
-        addToast('success', 'Account created successfully!');
+        addToast('success', isDemoMode() ? 'Demo account created!' : 'Account created successfully!');
         navigate('/dashboard');
       }
     } catch (error: any) {
@@ -143,10 +178,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      const response = await apiClient.logout();
-      
-      if (!response.success) {
-        console.warn('Logout request failed, but clearing local state');
+      if (isDemoMode()) {
+        // Demo logout
+        await demoApiResponses.logout();
+      } else {
+        // Real logout
+        const response = await apiClient.logout();
+        
+        if (!response.success) {
+          console.warn('Logout request failed, but clearing local state');
+        }
       }
       
       setUser(null);

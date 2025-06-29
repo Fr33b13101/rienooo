@@ -4,29 +4,50 @@ import { authenticateToken, AuthenticatedRequest } from '../../middleware/auth';
 
 const me = Router();
 
-// Initialize Supabase client
+// Check if demo mode is enabled
+const isDemoMode = process.env.DEMO_MODE === 'true';
+
+// Initialize Supabase client (skip in demo mode)
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
+if (!isDemoMode && (!supabaseUrl || !supabaseServiceKey)) {
   console.error('Missing required environment variables: SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY');
 }
 
-const supabase = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+const supabase = (!isDemoMode && supabaseUrl && supabaseServiceKey) ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+// Demo user data
+const demoUser = {
+  id: 'demo_user_id',
+  email: 'demo@rieno.app',
+  createdAt: '2024-01-01T00:00:00.000Z'
+};
 
 me.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!supabase) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Server configuration error: Supabase not configured' 
-      });
-    }
-
     if (!req.user) {
       return res.status(401).json({ 
         success: false, 
         error: 'User not authenticated' 
+      });
+    }
+
+    if (isDemoMode) {
+      // Demo mode - return demo user
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      return res.json({
+        success: true,
+        data: demoUser,
+      });
+    }
+
+    // Production mode - use Supabase
+    if (!supabase) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Server configuration error: Supabase not configured' 
       });
     }
 

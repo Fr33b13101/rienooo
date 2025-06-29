@@ -7,32 +7,18 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { DashboardSummary, ChartData, MonthlyComparison } from '../types';
-import { TrendingUp, Flame, ArrowUpRight, Plus, DollarSign, CreditCard } from 'lucide-react';
+import { TrendingUp, Flame, ArrowUpRight, Plus, DollarSign, CreditCard, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import CircularProgressChart from '../components/charts/CircularProgressChart';
-
-// Mock data for demo purposes with elegant green theme
-const mockSummary: DashboardSummary = {
-  totalRevenue: 45000,
-  totalProfit: 32000,
-  amountOwed: 8500,
-  amountYouOwe: 2300,
-  dailyStreak: 12
-};
-
-const mockRevenueData: ChartData[] = Array.from({ length: 30 }, (_, i) => ({
-  name: `Day ${i + 1}`,
-  revenue: Math.floor(Math.random() * 3000) + 1000,
-  profit: Math.floor(Math.random() * 2000) + 500
-}));
+import { isDemoMode, getDemoSummary, getDemoRevenueData, getDemoEntries } from '../lib/demoService';
 
 const DashboardMain = () => {
   const { user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const [summary] = useState<DashboardSummary>(mockSummary);
-  const [revenueData] = useState<ChartData[]>(mockRevenueData);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [revenueData, setRevenueData] = useState<ChartData[]>([]);
   const [monthlyComparison] = useState<MonthlyComparison[]>([]);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState([]);
@@ -47,33 +33,56 @@ const DashboardMain = () => {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const getEntries = async () => {
-      if (!user) return;
-      
+    const loadData = async () => {
       try {
-        const { data, error } = await supabase
-          .from('entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
+        setLoading(true);
+        
+        if (isDemoMode()) {
+          // Load demo data
+          await new Promise(resolve => setTimeout(resolve, 800)); // Simulate loading
+          setSummary(getDemoSummary());
+          setRevenueData(getDemoRevenueData());
+          setEntries(getDemoEntries());
+        } else {
+          // Load real data from Supabase
+          if (!user) return;
+          
+          const { data, error } = await supabase
+            .from('entries')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
 
-        if (error) {
-          throw error;
+          if (error) {
+            throw error;
+          }
+
+          setEntries(data || []);
+          
+          // Use mock data for now since we don't have real summary calculation
+          setSummary({
+            totalRevenue: 45000,
+            totalProfit: 32000,
+            amountOwed: 8500,
+            amountYouOwe: 2300,
+            dailyStreak: 12
+          });
+          
+          setRevenueData(Array.from({ length: 30 }, (_, i) => ({
+            name: `Day ${i + 1}`,
+            revenue: Math.floor(Math.random() * 3000) + 1000,
+            profit: Math.floor(Math.random() * 2000) + 500
+          })));
         }
-
-        setEntries(data || []);
       } catch (error) {
-        console.error('Error fetching entries:', error);
-        addToast('error', 'Failed to load entries');
+        console.error('Error loading dashboard data:', error);
+        addToast('error', 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
       }
     };
 
-    getEntries();
+    loadData();
   }, [user, addToast]);
 
   if (loading) {
@@ -82,6 +91,16 @@ const DashboardMain = () => {
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">Loading your financial data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-300">Failed to load dashboard data</p>
         </div>
       </div>
     );
@@ -137,9 +156,17 @@ const DashboardMain = () => {
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100/60 dark:bg-gray-700/60 px-3 py-1 rounded-full backdrop-blur-sm hover:bg-gray-200/60 dark:hover:bg-gray-600/60 transition-colors cursor-default"
+          className="flex items-center gap-3"
         >
-          {entries.length > 0 ? `${entries.length} entries loaded` : 'Demo Mode - Sample Data'}
+          {isDemoMode() && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-full text-sm font-medium">
+              <AlertCircle size={16} />
+              Demo Mode Active
+            </div>
+          )}
+          <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100/60 dark:bg-gray-700/60 px-3 py-1 rounded-full backdrop-blur-sm hover:bg-gray-200/60 dark:hover:bg-gray-600/60 transition-colors cursor-default">
+            {entries.length > 0 ? `${entries.length} entries loaded` : isDemoMode() ? 'Demo Data Loaded' : 'No entries yet'}
+          </div>
         </motion.div>
       </div>
 

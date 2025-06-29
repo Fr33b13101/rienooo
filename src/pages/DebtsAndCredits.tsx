@@ -6,6 +6,7 @@ import { Plus, Edit, Trash, Search, Check, Clock, Circle, Filter } from 'lucide-
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import FullscreenModal from '../components/ui/FullscreenModal';
+import { isDemoMode, getDemoDebtsCredits, simulateApiDelay } from '../lib/demoService';
 
 interface DebtCreditForm {
   id?: string;
@@ -46,15 +47,22 @@ const DebtsAndCredits = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('debts_credits')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('due_date');
+        if (isDemoMode()) {
+          // Load demo data
+          await simulateApiDelay(400);
+          setDebtsCredits(getDemoDebtsCredits());
+        } else {
+          // Load real data from Supabase
+          const { data, error } = await supabase
+            .from('debts_credits')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('due_date');
 
-        if (error) throw error;
-        
-        setDebtsCredits(data || []);
+          if (error) throw error;
+          
+          setDebtsCredits(data || []);
+        }
       } catch (error) {
         console.error('Error fetching debts and credits:', error);
         addToast('error', 'Failed to load debts and credits');
@@ -109,16 +117,24 @@ const DebtsAndCredits = () => {
     try {
       setDeleting(id);
       
-      const { error } = await supabase
-        .from('debts_credits')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      if (isDemoMode()) {
+        // Simulate delete in demo mode
+        await simulateApiDelay(500);
+        setDebtsCredits((prev) => prev.filter(item => item.id !== id));
+        addToast('success', 'Demo entry deleted (not actually removed)');
+      } else {
+        // Real delete from Supabase
+        const { error } = await supabase
+          .from('debts_credits')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
-      
-      setDebtsCredits((prev) => prev.filter(item => item.id !== id));
-      addToast('success', 'Entry deleted successfully');
+        if (error) throw error;
+        
+        setDebtsCredits((prev) => prev.filter(item => item.id !== id));
+        addToast('success', 'Entry deleted successfully');
+      }
     } catch (error) {
       console.error('Error deleting entry:', error);
       addToast('error', 'Failed to delete entry');
@@ -141,54 +157,95 @@ const DebtsAndCredits = () => {
     }
     
     try {
-      if (editingId) {
-        // Update existing entry
-        const { data, error } = await supabase
-          .from('debts_credits')
-          .update({
+      if (isDemoMode()) {
+        // Simulate save in demo mode
+        await simulateApiDelay(800);
+        
+        if (editingId) {
+          setDebtsCredits((prev) =>
+            prev.map((item) =>
+              item.id === editingId 
+                ? { 
+                    ...item, 
+                    name: formData.name,
+                    amount: formData.amount,
+                    reason: formData.reason,
+                    date: formData.date,
+                    dueDate: formData.dueDate,
+                    status: formData.status,
+                    type: formData.type
+                  }
+                : item
+            )
+          );
+          addToast('success', 'Demo entry updated (not actually saved)');
+        } else {
+          const newEntry: DebtCredit = {
+            id: `demo_debt_${Date.now()}`,
             name: formData.name,
             amount: formData.amount,
             reason: formData.reason,
             date: formData.date,
-            due_date: formData.dueDate,
+            dueDate: formData.dueDate,
             status: formData.status,
             type: formData.type,
-          })
-          .eq('id', editingId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        setDebtsCredits((prev) =>
-          prev.map((item) =>
-            item.id === editingId ? { ...data, dueDate: data.due_date } : item
-          )
-        );
-        
-        addToast('success', 'Entry updated successfully');
+            userId: user.id,
+            createdAt: new Date().toISOString()
+          };
+          setDebtsCredits((prev) => [...prev, newEntry]);
+          addToast('success', 'Demo entry added (not actually saved)');
+        }
       } else {
-        // Add new entry
-        const { data, error } = await supabase
-          .from('debts_credits')
-          .insert([{
-            name: formData.name,
-            amount: formData.amount,
-            reason: formData.reason,
-            date: formData.date,
-            due_date: formData.dueDate,
-            status: formData.status,
-            type: formData.type,
-            user_id: user.id
-          }])
-          .select()
-          .single();
+        // Real Supabase operations
+        if (editingId) {
+          // Update existing entry
+          const { data, error } = await supabase
+            .from('debts_credits')
+            .update({
+              name: formData.name,
+              amount: formData.amount,
+              reason: formData.reason,
+              date: formData.date,
+              due_date: formData.dueDate,
+              status: formData.status,
+              type: formData.type,
+            })
+            .eq('id', editingId)
+            .eq('user_id', user.id)
+            .select()
+            .single();
 
-        if (error) throw error;
-        
-        setDebtsCredits((prev) => [...prev, { ...data, dueDate: data.due_date }]);
-        addToast('success', 'Entry added successfully');
+          if (error) throw error;
+          
+          setDebtsCredits((prev) =>
+            prev.map((item) =>
+              item.id === editingId ? { ...data, dueDate: data.due_date } : item
+            )
+          );
+          
+          addToast('success', 'Entry updated successfully');
+        } else {
+          // Add new entry
+          const { data, error } = await supabase
+            .from('debts_credits')
+            .insert([{
+              name: formData.name,
+              amount: formData.amount,
+              reason: formData.reason,
+              date: formData.date,
+              due_date: formData.dueDate,
+              status: formData.status,
+              type: formData.type,
+              user_id: user.id
+            }])
+            .select()
+            .single();
+
+          if (error) throw error;
+          
+          setDebtsCredits((prev) => [...prev, { ...data, dueDate: data.due_date }]);
+          addToast('success', 'Entry added successfully');
+        }
       }
       
       resetForm();
@@ -205,21 +262,33 @@ const DebtsAndCredits = () => {
     try {
       const newStatus = currentStatus === 'paid' ? 'unpaid' : 'paid';
       
-      const { error } = await supabase
-        .from('debts_credits')
-        .update({ status: newStatus })
-        .eq('id', id)
-        .eq('user_id', user.id);
+      if (isDemoMode()) {
+        // Simulate status toggle in demo mode
+        await simulateApiDelay(300);
+        setDebtsCredits((prev) =>
+          prev.map((item) =>
+            item.id === id ? { ...item, status: newStatus } : item
+          )
+        );
+        addToast('success', `Demo entry marked as ${newStatus} (not actually saved)`);
+      } else {
+        // Real status update
+        const { error } = await supabase
+          .from('debts_credits')
+          .update({ status: newStatus })
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
-      
-      setDebtsCredits((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, status: newStatus } : item
-        )
-      );
-      
-      addToast('success', `Marked as ${newStatus}`);
+        if (error) throw error;
+        
+        setDebtsCredits((prev) =>
+          prev.map((item) =>
+            item.id === id ? { ...item, status: newStatus } : item
+          )
+        );
+        
+        addToast('success', `Marked as ${newStatus}`);
+      }
     } catch (error) {
       console.error('Error updating status:', error);
       addToast('error', 'Failed to update status');
@@ -255,6 +324,11 @@ const DebtsAndCredits = () => {
           <h2 className="text-2xl font-bold text-secondary-900">Debts & Credits</h2>
           <p className="text-secondary-600 mt-2">
             Track who owes you money and what you owe to others.
+            {isDemoMode() && (
+              <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
+                (Demo Mode - changes won't be saved)
+              </span>
+            )}
           </p>
         </div>
       </div>

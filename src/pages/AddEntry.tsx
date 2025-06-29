@@ -8,6 +8,7 @@ import FullscreenModal from '../components/ui/FullscreenModal';
 import { motion } from 'framer-motion';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { isDemoMode, getDemoCategories, simulateApiDelay } from '../lib/demoService';
 
 interface EntryForm {
   date: string;
@@ -44,15 +45,22 @@ const AddEntry = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('name');
+        if (isDemoMode()) {
+          // Load demo categories
+          await simulateApiDelay(300);
+          setCategories(getDemoCategories());
+        } else {
+          // Load real categories from Supabase
+          const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('name');
 
-        if (error) throw error;
-        
-        setCategories(data || []);
+          if (error) throw error;
+          
+          setCategories(data || []);
+        }
       } catch (error) {
         console.error('Error fetching categories:', error);
         addToast('error', 'Failed to load categories');
@@ -88,32 +96,39 @@ const AddEntry = () => {
     try {
       setSubmitting(true);
       
-      const { error } = await supabase
-        .from('entries')
-        .insert([{
-          date: formData.date,
-          product_or_service: formData.productOrService,
-          revenue: formData.revenue,
-          cost: formData.cost,
-          category_id: formData.categoryId,
-          notes: formData.notes || null,
-          user_id: user.id
-        }]);
+      if (isDemoMode()) {
+        // Simulate adding entry in demo mode
+        await simulateApiDelay(1000);
+        addToast('success', 'Demo entry added successfully (not saved)');
+      } else {
+        // Real Supabase insert
+        const { error } = await supabase
+          .from('entries')
+          .insert([{
+            date: formData.date,
+            product_or_service: formData.productOrService,
+            revenue: formData.revenue,
+            cost: formData.cost,
+            category_id: formData.categoryId,
+            notes: formData.notes || null,
+            user_id: user.id
+          }]);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Update daily streak
-      const today = new Date().toISOString().split('T')[0];
-      await supabase
-        .from('daily_streaks')
-        .upsert([{
-          user_id: user.id,
-          date: today
-        }], {
-          onConflict: 'user_id,date'
-        });
-      
-      addToast('success', 'Entry added successfully');
+        // Update daily streak
+        const today = new Date().toISOString().split('T')[0];
+        await supabase
+          .from('daily_streaks')
+          .upsert([{
+            user_id: user.id,
+            date: today
+          }], {
+            onConflict: 'user_id,date'
+          });
+        
+        addToast('success', 'Entry added successfully');
+      }
       
       // Reset form with default values set to 0
       setFormData({
@@ -144,6 +159,11 @@ const AddEntry = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add New Entry</h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           Record your income and expenses to keep track of your finances.
+          {isDemoMode() && (
+            <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
+              (Demo Mode - entries won't be saved)
+            </span>
+          )}
         </p>
       </motion.div>
       
