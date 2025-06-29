@@ -1,16 +1,18 @@
+import dotenv from 'dotenv';
+
+// Load environment variables FIRST, before any other imports
+dotenv.config();
+
 import express from 'express';
 import { Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import { signup } from './routes/auth/signup';
 import { login } from "./routes/auth/login"
 import { logout } from './routes/auth/logout';
 import { me } from './routes/auth/me';
 import { profileRouter } from './routes/profile';
 import { TransactionsRouter } from './routes/DebtAndCredit/transactionRouter'
-
-dotenv.config();
 
 const app = express();
 
