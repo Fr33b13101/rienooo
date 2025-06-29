@@ -4,12 +4,16 @@ import jwt from 'jsonwebtoken';
 
 const login = Router();
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
+// Initialize Supabase client with error handling
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const jwtSecret = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing required environment variables: SUPABASE_URL and/or SUPABASE_ANON_KEY');
+}
+
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 interface LoginRequest {
   email: string;
@@ -18,6 +22,13 @@ interface LoginRequest {
 
 login.post('/login', async (req: Request, res: Response) => {
   try {
+    if (!supabase) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Server configuration error: Supabase not configured' 
+      });
+    }
+
     const { email, password }: LoginRequest = req.body;
 
     // Validate input

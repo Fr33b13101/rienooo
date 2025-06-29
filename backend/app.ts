@@ -16,6 +16,16 @@ import { TransactionsRouter } from './routes/DebtAndCredit/transactionRouter'
 
 const app = express();
 
+// Check for required environment variables
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  console.error('Please create a .env file in the root directory with the required variables.');
+  console.error('See backend/.env.example for reference.');
+}
+
 // Middleware
 app.use(cors({
   origin: [
@@ -32,6 +42,17 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check endpoint
+app.get("/", (req: Request, res: Response) => {
+  const envStatus = missingEnvVars.length === 0 ? 'configured' : 'missing variables';
+  res.json({ 
+    message: "Welcome to Rieno API", 
+    status: "running",
+    environment: envStatus,
+    missingVars: missingEnvVars.length > 0 ? missingEnvVars : undefined
+  });
+});
+
 // Auth Routes
 app.use("/auth", login)
 app.use("/auth", signup)
@@ -39,10 +60,6 @@ app.use("/auth", logout)
 app.use("/auth", me)
 app.use("/api", profileRouter);
 app.use("/api", TransactionsRouter)
-
-app.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Welcome to Rieno API", status: "running" });
-})
 
 app.get("/:param", (req: Request, res: Response) => {
   res.json({ message: `You have accessed the parameter: ${req.params.param}` });
@@ -56,5 +73,10 @@ if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    if (missingEnvVars.length > 0) {
+      console.log('⚠️  Warning: Missing environment variables. Some features may not work.');
+    } else {
+      console.log('✅ All environment variables configured');
+    }
   });
 }
