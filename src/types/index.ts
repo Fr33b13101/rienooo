@@ -12,7 +12,7 @@ export interface AuthState {
 export interface Category {
   id: string;
   name: string;
-  type: 'income' | 'expense';
+  type: 'revenue' | 'expense' | 'profit';
   color?: string;
   userId: string;
   createdAt: string;
@@ -30,6 +30,30 @@ export interface Entry {
   createdAt: string;
 }
 
+export interface UserEntry {
+  id: string;
+  amount: number;
+  date: string;
+  categoryId: string;
+  userId: string;
+  note?: string;
+  createdAt: string;
+  description?: string;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: 'payable' | 'recievable';
+  name: string;
+  amount: number;
+  reason: string;
+  date: string;
+  dueDate: string;
+  status: 'unpaid' | 'paid';
+  createdAt: string;
+}
+
 export interface DebtCredit {
   id: string;
   name: string;
@@ -40,6 +64,31 @@ export interface DebtCredit {
   status: 'paid' | 'unpaid';
   type: 'receivable' | 'payable';
   userId: string;
+  createdAt: string;
+}
+
+export interface UsersInformation {
+  id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  createdAt: string;
+  currency: string;
+}
+
+export interface DailyStreak {
+  id: string;
+  userId: string;
+  date: string;
+  currentStreak: number;
+  createdAt: string;
+}
+
+export interface Collaborator {
+  id: string;
+  userId: string;
+  collaboratorEmail: string;
+  role: 'admin' | 'editor' | 'viewer';
   createdAt: string;
 }
 
@@ -72,12 +121,4 @@ export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';
   message: string;
-}
-
-export interface Collaborator {
-  id: string;
-  email: string;
-  role: 'admin' | 'editor' | 'viewer';
-  userId: string;
-  createdAt: string;
 }

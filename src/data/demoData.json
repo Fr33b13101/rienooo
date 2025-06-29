@@ -133,7 +133,7 @@
     {
       "id": "demo_cat_1",
       "name": "Web Development",
-      "type": "income",
+      "type": "revenue",
       "color": "#10B981",
       "userId": "demo_user_id",
       "createdAt": "2024-01-01T00:00:00.000Z"
@@ -141,7 +141,7 @@
     {
       "id": "demo_cat_2",
       "name": "Consulting",
-      "type": "income",
+      "type": "revenue",
       "color": "#3B82F6",
       "userId": "demo_user_id",
       "createdAt": "2024-01-01T00:00:00.000Z"
@@ -149,7 +149,7 @@
     {
       "id": "demo_cat_3",
       "name": "Design",
-      "type": "income",
+      "type": "revenue",
       "color": "#8B5CF6",
       "userId": "demo_user_id",
       "createdAt": "2024-01-01T00:00:00.000Z"

@@ -27,7 +27,7 @@ const colorOptions = [
 interface CategoryForm {
   id?: string;
   name: string;
-  type: 'income' | 'expense';
+  type: 'revenue' | 'expense' | 'profit';
   color: string;
 }
 
@@ -43,7 +43,7 @@ const Categories = () => {
   // Form state
   const [formData, setFormData] = useState<CategoryForm>({
     name: '',
-    type: 'income',
+    type: 'revenue',
     color: colorOptions[0].value,
   });
   
@@ -90,7 +90,7 @@ const Categories = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      type: 'income',
+      type: 'revenue',
       color: colorOptions[0].value,
     });
     setEditingId(null);
@@ -187,7 +187,6 @@ const Categories = () => {
             .update({
               name: formData.name,
               type: formData.type,
-              color: formData.color,
             })
             .eq('id', editingId)
             .eq('user_id', user.id)
@@ -198,7 +197,7 @@ const Categories = () => {
           
           setCategories((prev) =>
             prev.map((category) =>
-              category.id === editingId ? data : category
+              category.id === editingId ? { ...data, color: formData.color, userId: data.user_id, createdAt: data.created_at } : category
             )
           );
           
@@ -210,7 +209,6 @@ const Categories = () => {
             .insert([{
               name: formData.name,
               type: formData.type,
-              color: formData.color,
               user_id: user.id
             }])
             .select()
@@ -218,7 +216,14 @@ const Categories = () => {
 
           if (error) throw error;
           
-          setCategories((prev) => [...prev, data]);
+          const newCategory: Category = {
+            ...data,
+            color: formData.color,
+            userId: data.user_id,
+            createdAt: data.created_at
+          };
+          
+          setCategories((prev) => [...prev, newCategory]);
           addToast('success', 'Category added successfully');
         }
       }
@@ -290,18 +295,18 @@ const Categories = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Income Categories */}
+          {/* Revenue Categories */}
           <div className="card">
             <div className="flex items-center mb-4">
               <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full mr-3">
                 <TrendingUp size={20} className="text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Income Categories</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Revenue Categories</h3>
             </div>
             
             <ul className="space-y-2">
               {categories
-                .filter((category) => category.type === 'income')
+                .filter((category) => category.type === 'revenue')
                 .map((category) => (
                   <motion.li
                     key={category.id}
@@ -339,9 +344,9 @@ const Categories = () => {
                   </motion.li>
                 ))}
               
-              {categories.filter((category) => category.type === 'income').length === 0 && (
+              {categories.filter((category) => category.type === 'revenue').length === 0 && (
                 <li className="text-center py-4 text-gray-500 dark:text-gray-400">
-                  No income categories found.
+                  No revenue categories found.
                 </li>
               )}
             </ul>
@@ -446,8 +451,9 @@ const Categories = () => {
                   className="input"
                   required
                 >
-                  <option value="income">Income</option>
+                  <option value="revenue">Revenue</option>
                   <option value="expense">Expense</option>
+                  <option value="profit">Profit</option>
                 </select>
               </div>
               
