@@ -99,7 +99,7 @@ signup.post('/signup', async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         user: {
@@ -111,7 +111,7 @@ signup.post('/signup', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: 'Internal server error' 
     });
