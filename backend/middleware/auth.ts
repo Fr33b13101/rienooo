@@ -27,6 +27,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
       email: decoded.email,
     };
     next();
+    return;
   } catch (error) {
     console.error('Token verification error:', error);
     return res.status(403).json({ 
